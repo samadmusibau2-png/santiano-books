@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Library — Santiano Books</title>
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        /* =====================================================
+           LIBRARY PAGE – RESPONSIVE SIDEBAR
+        ===================================================== */
+
+        :root {
+            --lib-bg: #faf6f0;
+            --lib-paper: #ffffff;
+            --lib-cream: #f5efe6;
+            --lib-line: #ebe4d9;
+            --lib-text: #1e1a16;
+            --lib-muted: #6b645c;
+            --lib-gold: #b8893d;
+            --lib-dark: #2c3e6b;
+        }
+
+        body {
+            background: var(--lib-bg);
+        }
+
+        /* ---------- SIDEBAR ---------- */
+        .library-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100vh;
+            padding: 28px 18px;
+            background: var(--lib-paper);
+            border-right: 1px solid var(--lib-line);
+            box-shadow: 4px 0 24px rgba(40, 30, 15, 0.04);
+            z-index: 1000;
+            overflow-y: auto;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .library-sidebar.open {
+            transform: translateX(0);
+        }
+
+        .library-sidebar-title {
+            display: block;
+            margin-bottom: 18px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--lib-line);
+            color: var(--lib-text);
+            font-size: 12px;
+            letter-spacing: 1.5px;
+        }
+
+        .library-sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 3px 0;
+            padding: 12px;
+            border-radius: 10px;
+            color: var(--lib-muted);
+            font-size: 14px;
+            text-decoration: none;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .library-sidebar a:hover {
+            background: var(--lib-cream);
+            color: var(--lib-text);
+        }
+
+        .library-sidebar a.active {
+            background: var(--lib-cream);
+            color: var(--lib-gold);
+            font-weight: 700;
+        }
+
+        .library-sidebar a.library-sidebar-logout {
+            margin-top: 18px;
+            border-top: 1px solid var(--lib-line);
+            border-radius: 0 0 10px 10px;
+            color: #9a5d4a;
+        }
+
+        .library-sidebar a.library-sidebar-logout:hover {
+            background: #fff3ef;
+        }
+
+        /* Overlay */
+        .library-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(30, 26, 22, 0.45);
+            z-index: 999;
+        }
+
+        .library-overlay.show {
+            display: block;
+        }
+
+        /* ---------- MOBILE HEADER ---------- */
+        .library-mobile-header {
+            display: none;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            background: var(--lib-paper);
+            border-bottom: 1px solid var(--lib-line);
+            position: sticky;
+            top: 0;
+            z-index: 900;
+        }
+
+        .library-hamburger {
+            background: none;
+            border: 1px solid var(--lib-line);
+            border-radius: 9px;
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            font-size: 20px;
+            color: var(--lib-dark);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .library-hamburger:hover {
+            background: var(--lib-cream);
+        }
+
+        .library-mobile-header h1 {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--lib-text);
+        }
+
+        /* ---------- MAIN CONTENT ---------- */
+        .library-main {
+            padding: 30px 20px 60px;
+        }
+
+        /* =====================================================
+           DESKTOP (≥ 900px)
+        ===================================================== */
+        @media (min-width: 900px) {
+            .library-mobile-header {
+                display: none !important;
+            }
+
+            .library-sidebar {
+                transform: translateX(0);
+            }
+
+            .library-main {
+                margin-left: 260px;
+                padding: 40px 40px 80px;
+            }
+
+            .library-overlay {
+                display: none !important;
+            }
+        }
+
+        /* =====================================================
+           TABLET & MOBILE
+        ===================================================== */
+        @media (max-width: 899px) {
+            .library-mobile-header {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Overlay -->
+    <div class="library-overlay" id="libraryOverlay" onclick="closeLibraryMenu()"></div>
+
+    <!-- =========================
+         NAVBAR
+    ========================= -->
+    <nav class="navbar">
+        <div class="container nav-inner">
+            <a class="logo" href="home.html">
+                <span class="logo-mark">S</span>
+                <span class="logo-text">
+                    <h2>$ΛИŦIΛИØ</h2>
+                    <small>BOOKS</small>
+                </span>
+            </a>
+
+            <div class="nav-links">
+                <a href="home.html">Home</a>
+                <a href="books.html">Books</a>
+                <a class="active" href="library.html">My Library</a>
+            </div>
+
+            <div class="nav-actions">
+                <a class="icon-btn" href="cart.html" aria-label="Shopping cart">
+                    🛒
+                    <sup data-cart-count>0</sup>
+                </a>
+                <button class="outline-btn" id="logoutButton" type="button">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- =========================
+         MOBILE HEADER
+    ========================= -->
+    <header class="library-mobile-header">
+        <button class="library-hamburger" onclick="toggleLibraryMenu()" aria-label="Open menu">☰</button>
+        <h1>My Library</h1>
+    </header>
+
+    <!-- =========================
+         SIDEBAR
+    ========================= -->
+    <aside class="library-sidebar" id="librarySidebar">
+        <b class="library-sidebar-title">MENU</b>
+
+        <a href="home.html">
+            <span>⌂</span>
+            <span>Home</span>
+        </a>
+
+        <a href="books.html">
+            <span>▤</span>
+            <span>Books</span>
+        </a>
+
+        <a class="active" href="library.html">
+            <span>▦</span>
+            <span>My Library</span>
+        </a>
+
+        <a href="account.html">
+            <span>♙</span>
+            <span>My Account</span>
+        </a>
+
+        <a href="cart.html">
+            <span>🛒</span>
+            <span>Cart</span>
+        </a>
+
+        <a href="login.html" class="library-sidebar-logout" id="sidebarLogout">
+            <span>↪</span>
+            <span>Logout</span>
+        </a>
+    </aside>
+
+    <!-- =========================
+         LIBRARY CONTENT
+    ========================= -->
+    <main class="page">
+        <div class="container library-main">
+
+            <div class="eyebrow">Personal Library</div>
+
+            <h1 class="page-title">My Library</h1>
+
+            <p class="muted">
+                Welcome back,
+                <strong data-user-name>Reader</strong>.
+                Your purchased books appear here.
+            </p>
+
+            <p class="muted library-message" data-library-message>
+                Loading your library...
+            </p>
+
+            <section class="books-grid library-books-grid" data-library-grid></section>
+
+        </div>
+    </main>
+
+    <script src="js/library.js"></script>
+    <script src="js/auth.js"></script>
+
+    <script>
+        /* =========================
+           MENU TOGGLE
+        ========================= */
+        const sidebar = document.getElementById('librarySidebar');
+        const overlay = document.getElementById('libraryOverlay');
+
+        function toggleLibraryMenu() {
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+        }
+
+        function closeLibraryMenu() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('show');
+        }
+
+        // Close menu when clicking a link on mobile
+        document.querySelectorAll('.library-sidebar a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth < 900) {
+                    closeLibraryMenu();
+                }
+            });
+        });
+
+        // Logout (safe version)
+        const logoutBtn = document.getElementById('sidebarLogout');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                if (typeof logout === 'function') {
+                    logout();
+                } else if (typeof window.logout === 'function') {
+                    window.logout();
+                } else {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    sessionStorage.clear();
+                    window.location.href = 'index.html';
+                }
+            });
+        }
+
+        // Also connect the top navbar logout button
+        const topLogoutBtn = document.getElementById('logoutButton');
+        if (topLogoutBtn) {
+            topLogoutBtn.addEventListener('click', function () {
+                if (typeof logout === 'function') {
+                    logout();
+                } else {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    sessionStorage.clear();
+                    window.location.href = 'index.html';
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>

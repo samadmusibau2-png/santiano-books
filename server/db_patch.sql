@@ -1,0 +1,2 @@
+ALTER TABLE books
+ADD COLUMN IF NOT EXISTS author VARCHAR(160) NOT NULL DEFAULT 'Musibau Samad Eniola';

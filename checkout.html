@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Checkout — Santiano Books</title>
+
+  <link
+    rel="stylesheet"
+    href="css/style.css"
+  >
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+
+  <nav class="navbar">
+
+    <div class="container nav-inner">
+
+      <a
+        class="logo"
+        href="index.html"
+      >
+        <span class="logo-mark">S</span>
+
+        <span class="logo-text">
+          <h2>$ΛИŦIΛИØ</h2>
+          <small>BOOKS</small>
+        </span>
+      </a>
+
+
+      <div class="nav-links">
+
+        <a href="books.html">
+          Books
+        </a>
+
+        <a href="library.html">
+          My Library
+        </a>
+
+      </div>
+
+
+      <div class="nav-actions">
+
+        <a
+          class="icon-btn"
+          href="cart.html"
+        >
+          🛒
+          <sup data-cart-count>0</sup>
+        </a>
+
+      </div>
+
+    </div>
+
+  </nav>
+
+
+  <!-- CHECKOUT -->
+
+  <main class="page">
+
+    <div class="container">
+
+      <div class="eyebrow">
+        Secure Checkout
+      </div>
+
+
+      <h1 class="page-title">
+        Complete Your Purchase
+      </h1>
+
+
+      <div
+        class="checkout-layout"
+        data-checkout
+      >
+
+        <!-- CONTENT WILL BE LOADED BY checkout.js -->
+
+        <p class="muted">
+          Loading checkout...
+        </p>
+
+      </div>
+
+    </div>
+
+  </main>
+
+
+  <script src="js/app.js"></script>
+
+  <script src="https://js.paystack.co/v2/inline.js"></script>
+
+  <script src="js/checkout.js"></script>
+  
+</body>
+</html>

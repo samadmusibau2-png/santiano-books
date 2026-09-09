@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Santiano Books — Admin Dashboard</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f0e8;
+      color: #171717;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .topbar {
+      min-height: 72px;
+      background: #171717;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 35px;
+    }
+
+    .logo {
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: 5px;
+    }
+
+    .logo span {
+      display: block;
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: #c9a84d;
+      margin-top: 5px;
+    }
+
+    .logout-btn {
+      display: none;
+      background: transparent;
+      border: 1px solid #777;
+      color: white;
+      padding: 9px 17px;
+      border-radius: 7px;
+    }
+
+    .logout-btn:hover {
+      background: white;
+      color: #171717;
+    }
+
+    .login-page {
+      min-height: calc(100vh - 72px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 430px;
+      background: white;
+      border: 1px solid #ddd6c8;
+      border-radius: 18px;
+      padding: 35px;
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.08);
+    }
+
+    .login-box h1 {
+      font-size: 30px;
+      margin-bottom: 8px;
+    }
+
+    .login-box p {
+      color: #777;
+      margin-bottom: 28px;
+    }
+
+    .field {
+      margin-bottom: 18px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 7px;
+    }
+
+    .field input,
+    .field textarea {
+      width: 100%;
+      border: 1px solid #ccc4b5;
+      border-radius: 9px;
+      padding: 13px;
+      outline: none;
+      background: #fff;
+    }
+
+    .field textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .field input:focus,
+    .field textarea:focus {
+      border-color: #c9a84d;
+    }
+
+    .login-btn,
+    .publish-btn {
+      width: 100%;
+      border: none;
+      border-radius: 9px;
+      padding: 14px;
+      font-weight: 700;
+    }
+
+    .login-btn {
+      background: #171717;
+      color: white;
+    }
+
+    .publish-btn {
+      background: #c9a84d;
+      color: #171717;
+    }
+
+    .login-btn:hover,
+    .publish-btn:hover {
+      opacity: 0.9;
+    }
+
+    .login-btn:disabled,
+    .publish-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .message {
+      display: none;
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .dashboard {
+      display: none;
+      max-width: 1250px;
+      margin: auto;
+      padding: 40px 25px;
+    }
+
+    .dashboard-title {
+      margin-bottom: 30px;
+    }
+
+    .dashboard-title h1 {
+      font-size: 35px;
+      margin-bottom: 7px;
+    }
+
+    .dashboard-title p {
+      color: #706d66;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 25px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #ddd6c8;
+      border-radius: 15px;
+      padding: 25px;
+    }
+
+    .card h2 {
+      margin-bottom: 20px;
+      font-size: 22px;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 13px 9px;
+      border-bottom: 1px solid #e5dfd4;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    th {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #777;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .published {
+      background: #e3f3e6;
+      color: #215b2d;
+    }
+
+    .draft {
+      background: #eeeae2;
+      color: #706d66;
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      border: none;
+      border-radius: 6px;
+      padding: 7px 10px;
+      background: #171717;
+      color: white;
+      font-size: 12px;
+    }
+
+    .action-btn:hover {
+      opacity: 0.85;
+    }
+
+    .delete-btn {
+      background: #9b2c2c;
+    }
+
+    .empty-row {
+      color: #777;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .topbar {
+        padding: 0 18px;
+      }
+
+      .dashboard {
+        padding: 25px 15px;
+      }
+
+      .login-page {
+        padding: 15px;
+      }
+
+      .login-box {
+        padding: 25px;
+      }
+
+      .dashboard-title h1 {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="topbar">
+    <div class="logo">
+      $ΛИŦIΛИØ
+      <span>BOOKS ADMIN</span>
+    </div>
+
+    <button
+      id="logoutButton"
+      class="logout-btn"
+      type="button"
+    >
+      Logout
+    </button>
+  </header>
+
+  <!-- LOGIN PAGE -->
+
+  <section id="loginPage" class="login-page">
+    <div class="login-box">
+      <h1>Admin Login</h1>
+
+      <p>
+        Sign in to manage your Santiano Books store.
+      </p>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="email">Email</label>
+
+          <input
+            id="email"
+            type="email"
+            placeholder="Enter admin email"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+
+          <input
+            id="password"
+            type="password"
+            placeholder="Enter password"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <button
+          type="submit"
+          class="login-btn"
+          id="loginButton"
+        >
+          Sign In
+        </button>
+      </form>
+
+      <div id="loginMessage" class="message"></div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+
+  <section id="dashboard" class="dashboard">
+
+    <div class="dashboard-title">
+      <h1>Book Management</h1>
+
+      <p>
+        Add, publish and manage your digital books.
+      </p>
+    </div>
+
+    <div class="dashboard-grid">
+
+      <!-- ADD BOOK -->
+
+      <div class="card">
+        <h2>Add New Book</h2>
+
+        <form
+          id="bookForm"
+          enctype="multipart/form-data"
+        >
+
+          <div class="field">
+            <label for="title">Book Title</label>
+
+            <input
+              id="title"
+              type="text"
+              name="title"
+              placeholder="Enter book title"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label for="author">Author</label>
+
+            <input
+              id="author"
+              type="text"
+              name="author"
+              value="Musibau Samad Eniola"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label for="category">Category</label>
+
+            <input
+              id="category"
+              type="text"
+              name="category"
+              placeholder="Personal Development"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label for="priceNaira">Price (NGN)</label>
+
+            <input
+              id="priceNaira"
+              type="number"
+              name="priceNaira"
+              min="0"
+              step="0.01"
+              placeholder="5000"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label for="description">Description</label>
+
+            <textarea
+              id="description"
+              name="description"
+              placeholder="Describe your book..."
+              required
+            ></textarea>
+          </div>
+
+          <div class="field">
+            <label for="ebook">Digital Book — PDF</label>
+
+            <input
+              id="ebook"
+              type="file"
+              name="ebook"
+              accept="application/pdf"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label for="cover">Book Cover</label>
+
+            <input
+              id="cover"
+              type="file"
+              name="cover"
+              accept="image/jpeg,image/png,image/webp"
+            >
+          </div>
+
+          <button
+            type="submit"
+            class="publish-btn"
+            id="publishButton"
+          >
+            Publish Book
+          </button>
+        </form>
+
+        <div id="bookMessage" class="message"></div>
+      </div>
+
+      <!-- BOOK LIST -->
+
+      <div class="card">
+        <h2>Your Books</h2>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Book</th>
+                <th>Price</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+
+            <tbody id="booksBody">
+              <tr>
+                <td colspan="4" class="empty-row">
+                  No books loaded.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <script>
+    const API = "http://localhost:3000/api";
+    const TOKEN_KEY = "santiano_admin_token";
+
+    const loginPage = document.getElementById("loginPage");
+    const dashboard = document.getElementById("dashboard");
+
+    const loginForm = document.getElementById("loginForm");
+    const loginEmail = document.getElementById("email");
+    const loginPassword = document.getElementById("password");
+    const loginButton = document.getElementById("loginButton");
+    const loginMessage = document.getElementById("loginMessage");
+
+    const logoutButton = document.getElementById("logoutButton");
+
+    const bookForm = document.getElementById("bookForm");
+    const booksBody = document.getElementById("booksBody");
+    const bookMessage = document.getElementById("bookMessage");
+    const publishButton = document.getElementById("publishButton");
+
+    /* =========================
+       TOKEN
+    ========================= */
+
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY);
+    }
+
+    /* =========================
+       API REQUEST
+    ========================= */
+
+    async function apiRequest(url, options = {}) {
+      const response = await fetch(url, options);
+
+      let data = {};
+
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || `Request failed with status ${response.status}`
+        );
+      }
+
+      return data;
+    }
+
+    /* =========================
+       MONEY
+    ========================= */
+
+    function formatNGN(kobo) {
+      return new Intl.NumberFormat("en-NG", {
+        style: "currency",
+        currency: "NGN",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(Number(kobo || 0) / 100);
+    }
+
+    /* =========================
+       MESSAGES
+    ========================= */
+
+    function showMessage(element, text, success = false) {
+      element.textContent = text;
+      element.style.display = "block";
+
+      element.style.background = success
+        ? "#e5f3e8"
+        : "#f7e4e1";
+
+      element.style.color = success
+        ? "#215b2d"
+        : "#7a2118";
+    }
+
+    /* =========================
+       LOGIN STATE
+    ========================= */
+
+    function showDashboard() {
+      loginPage.style.display = "none";
+      dashboard.style.display = "block";
+      logoutButton.style.display = "block";
+
+      loadBooks();
+    }
+
+    function showLogin() {
+      loginPage.style.display = "flex";
+      dashboard.style.display = "none";
+      logoutButton.style.display = "none";
+    }
+
+    /* =========================
+       LOGIN
+    ========================= */
+
+    loginForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const email = loginEmail.value.trim();
+      const password = loginPassword.value;
+
+      loginButton.disabled = true;
+      loginButton.textContent = "Signing in...";
+      loginMessage.style.display = "none";
+
+      try {
+        const data = await apiRequest(`${API}/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            email,
+            password
+          })
+        });
+
+        if (!data.token) {
+          throw new Error(
+            "Login succeeded but no token was returned."
+          );
+        }
+
+        localStorage.setItem(TOKEN_KEY, data.token);
+
+        showDashboard();
+
+      } catch (error) {
+        console.error("Login error:", error);
+
+        showMessage(
+          loginMessage,
+          error.message || "Unable to sign in."
+        );
+
+      } finally {
+        loginButton.disabled = false;
+        loginButton.textContent = "Sign In";
+      }
+    });
+
+    /* =========================
+       LOAD BOOKS
+    ========================= */
+
+    async function loadBooks() {
+      const token = getToken();
+
+      if (!token) {
+        showLogin();
+        return;
+      }
+
+      booksBody.innerHTML = `
+        <tr>
+          <td colspan="4" class="empty-row">
+            Loading books...
+          </td>
+        </tr>
+      `;
+
+      try {
+        const data = await apiRequest(`${API}/admin/books`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        renderBooks(data.books || []);
+
+      } catch (error) {
+        console.error("Load books error:", error);
+
+        booksBody.innerHTML = `
+          <tr>
+            <td colspan="4" class="empty-row">
+              Unable to load books.
+            </td>
+          </tr>
+        `;
+
+        showMessage(bookMessage, error.message);
+      }
+    }
+
+    /* =========================
+       RENDER BOOKS
+    ========================= */
+
+    function renderBooks(books) {
+      if (!books.length) {
+        booksBody.innerHTML = `
+          <tr>
+            <td colspan="4" class="empty-row">
+              You haven't added any books yet.
+            </td>
+          </tr>
+        `;
+
+        return;
+      }
+
+      booksBody.innerHTML = books.map((book) => {
+        const published = book.is_published === true;
+
+        return `
+          <tr>
+            <td>
+              <strong>${escapeHTML(book.title)}</strong>
+              <br>
+              <small>
+                ${escapeHTML(book.category || "General")}
+              </small>
+            </td>
+
+            <td>
+              ${formatNGN(book.price_kobo)}
+            </td>
+
+            <td>
+              <span class="status ${
+                published ? "published" : "draft"
+              }">
+                ${published ? "Published" : "Draft"}
+              </span>
+            </td>
+
+            <td>
+              <div class="actions">
+                <button
+                  class="action-btn"
+                  type="button"
+                  onclick="togglePublish(${book.id})"
+                >
+                  ${published ? "Unpublish" : "Publish"}
+                </button>
+
+                <button
+                  class="action-btn delete-btn"
+                  type="button"
+                  onclick="deleteBook(${book.id})"
+                >
+                  Delete
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    /* =========================
+       ADD BOOK
+    ========================= */
+
+    bookForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const token = getToken();
+
+      if (!token) {
+        showLogin();
+        return;
+      }
+
+      publishButton.disabled = true;
+      publishButton.textContent = "Uploading...";
+      bookMessage.style.display = "none";
+
+      try {
+        const formData = new FormData(bookForm);
+
+        const priceNaira = Number(
+          formData.get("priceNaira")
+        );
+
+        if (!Number.isFinite(priceNaira) || priceNaira < 0) {
+          throw new Error(
+            "Please enter a valid price in naira."
+          );
+        }
+
+        const priceKobo = Math.round(priceNaira * 100);
+
+        formData.delete("priceNaira");
+
+        formData.append(
+          "price_kobo",
+          String(priceKobo)
+        );
+
+        const data = await apiRequest(`${API}/admin/books`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        showMessage(
+          bookMessage,
+          data.message || "Book published successfully.",
+          true
+        );
+
+        bookForm.reset();
+
+        document.querySelector(
+          'input[name="author"]'
+        ).value = "Musibau Samad Eniola";
+
+        await loadBooks();
+
+      } catch (error) {
+        console.error("Upload error:", error);
+
+        showMessage(
+          bookMessage,
+          error.message || "Book upload failed."
+        );
+
+      } finally {
+        publishButton.disabled = false;
+        publishButton.textContent = "Publish Book";
+      }
+    });
+
+    /* =========================
+       PUBLISH / UNPUBLISH
+    ========================= */
+
+    async function togglePublish(id) {
+      const token = getToken();
+
+      if (!token) {
+        showLogin();
+        return;
+      }
+
+      try {
+        await apiRequest(`${API}/admin/books/${id}/publish`, {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        await loadBooks();
+
+      } catch (error) {
+        console.error("Publish error:", error);
+
+        showMessage(
+          bookMessage,
+          error.message || "Unable to change book status."
+        );
+      }
+    }
+
+    /* =========================
+       DELETE BOOK
+    ========================= */
+
+    async function deleteBook(id) {
+      const confirmed = confirm(
+        "Are you sure you want to delete this book?"
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      const token = getToken();
+
+      if (!token) {
+        showLogin();
+        return;
+      }
+
+      try {
+        await apiRequest(`${API}/admin/books/${id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        showMessage(
+          bookMessage,
+          "Book deleted successfully.",
+          true
+        );
+
+        await loadBooks();
+
+      } catch (error) {
+        console.error("Delete error:", error);
+
+        showMessage(
+          bookMessage,
+          error.message || "Unable to delete book."
+        );
+      }
+    }
+
+    /* =========================
+       LOGOUT
+    ========================= */
+
+    logoutButton.addEventListener("click", () => {
+      localStorage.removeItem(TOKEN_KEY);
+
+      loginEmail.value = "";
+      loginPassword.value = "";
+
+      showLogin();
+    });
+
+    /* =========================
+       HTML ESCAPE
+    ========================= */
+
+    function escapeHTML(value) {
+      return String(value ?? "").replace(
+        /[&<>"']/g,
+        (character) => {
+          return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+          }[character];
+        }
+      );
+    }
+
+    /* =========================
+       START
+    ========================= */
+
+    if (getToken()) {
+      showDashboard();
+    } else {
+      showLogin();
+    }
+  </script>
+
+</body>
+</html>

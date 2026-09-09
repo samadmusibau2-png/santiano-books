@@ -1,0 +1,12 @@
+.env
+node_modules/
+uploads/ebooks/*
+uploads/covers/*
+server/uploads/ebooks/*
+server/uploads/covers/*
+!uploads/ebooks/.gitkeep
+!uploads/covers/.gitkeep
+!server/uploads/ebooks/.gitkeep
+!server/uploads/covers/.gitkeep
+postgresql-18.6-1-windows-x64.exe
+*.log

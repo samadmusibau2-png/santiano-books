@@ -1,0 +1,25 @@
+# Environment secrets
+.env
+server/.env
+
+# Dependencies
+node_modules/
+server/node_modules/
+
+# Uploaded files
+uploads/ebooks/*
+uploads/covers/*
+server/uploads/ebooks/*
+server/uploads/covers/*
+
+# Keep empty upload folders
+!uploads/ebooks/.gitkeep
+!uploads/covers/.gitkeep
+!server/uploads/ebooks/.gitkeep
+!server/uploads/covers/.gitkeep
+
+# PostgreSQL installer
+postgresql-18.6-1-windows-x64.exe
+
+# Logs
+*.log

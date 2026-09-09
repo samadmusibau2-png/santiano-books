@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Create Account — Santiano Books</title>
+
+    <link
+        rel="stylesheet"
+        href="css/style.css"
+    >
+
+</head>
+
+<body>
+
+<nav class="navbar">
+
+    <div class="container nav-inner">
+
+        <a
+            class="logo"
+            href="index.html"
+        >
+
+            <span class="logo-mark">
+                S
+            </span>
+
+            <span class="logo-text">
+                <h2>$ΛИŦIΛИØ</h2>
+                <small>BOOKS</small>
+            </span>
+
+        </a>
+
+
+        <a
+            class="outline-btn"
+            style="color:#d0a45c"
+            href="index.html"
+        >
+            Back Home
+        </a>
+
+    </div>
+
+</nav>
+
+
+<main class="page">
+
+    <div class="form-wrap">
+
+        <div
+            class="eyebrow"
+            style="text-align:center"
+        >
+            SANTIANO BOOKS
+        </div>
+
+
+        <h1>
+            Create Account
+        </h1>
+
+
+        <p
+            class="muted"
+            style="text-align:center"
+        >
+            Create your account and enter Santiano Books.
+        </p>
+
+
+        <form id="registerForm">
+
+            <!-- FULL NAME -->
+
+            <div class="field">
+
+                <label for="registerName">
+                    FULL NAME
+                </label>
+
+                <input
+                    id="registerName"
+                    name="name"
+                    type="text"
+                    placeholder="Your full name"
+                    autocomplete="name"
+                    required
+                >
+
+            </div>
+
+
+            <!-- EMAIL -->
+
+            <div class="field">
+
+                <label for="registerEmail">
+                    EMAIL ADDRESS
+                </label>
+
+                <input
+                    id="registerEmail"
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    autocomplete="email"
+                    required
+                >
+
+            </div>
+
+
+            <!-- PASSWORD -->
+
+            <div class="field">
+
+                <label for="registerPassword">
+                    PASSWORD
+                </label>
+
+                <input
+                    id="registerPassword"
+                    name="password"
+                    type="password"
+                    placeholder="Create a password"
+                    autocomplete="new-password"
+                    minlength="8"
+                    required
+                >
+
+            </div>
+
+
+            <!-- CONFIRM PASSWORD -->
+
+            <div class="field">
+
+                <label for="registerConfirm">
+                    CONFIRM PASSWORD
+                </label>
+
+                <input
+                    id="registerConfirm"
+                    name="confirmPassword"
+                    type="password"
+                    placeholder="Confirm your password"
+                    autocomplete="new-password"
+                    minlength="8"
+                    required
+                >
+
+            </div>
+
+
+            <!-- SUBMIT -->
+
+            <button
+                type="submit"
+                class="gold-btn full"
+                id="registerButton"
+            >
+                CREATE ACCOUNT
+            </button>
+
+        </form>
+
+
+        <p
+            id="registerMessage"
+            class="muted"
+            style="
+                text-align:center;
+                margin-top:15px;
+                min-height:20px;
+            "
+        ></p>
+
+
+        <div class="form-foot">
+
+            Already have an account?
+
+            <a href="login.html">
+                Login
+            </a>
+
+        </div>
+
+    </div>
+
+</main>
+
+
+<script src="js/auth.js"></script>
+
+</body>
+
+</html>

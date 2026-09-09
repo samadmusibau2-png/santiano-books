@@ -1,0 +1,472 @@
+```html
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cart — Santiano Books</title>
+
+  <link rel="stylesheet" href="css/style.css">
+
+  <style>
+    /* =====================================================
+       CART PAGE – RESPONSIVE SIDEBAR
+    ===================================================== */
+
+    :root {
+      --cart-bg: #faf6f0;
+      --cart-paper: #ffffff;
+      --cart-cream: #f5efe6;
+      --cart-line: #ebe4d9;
+      --cart-text: #1e1a16;
+      --cart-muted: #6b645c;
+      --cart-gold: #b8893d;
+      --cart-dark: #2c3e6b;
+    }
+
+    body {
+      background: var(--cart-bg);
+    }
+
+    /* ---------- SIDEBAR ---------- */
+
+    .cart-sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 260px;
+      height: 100vh;
+      padding: 28px 18px;
+      background: var(--cart-paper);
+      border-right: 1px solid var(--cart-line);
+      box-shadow: 4px 0 24px rgba(40, 30, 15, 0.04);
+      z-index: 1000;
+      overflow-y: auto;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+
+    .cart-sidebar.open {
+      transform: translateX(0);
+    }
+
+    .cart-sidebar-title {
+      display: block;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--cart-line);
+      color: var(--cart-text);
+      font-size: 12px;
+      letter-spacing: 1.5px;
+    }
+
+    .cart-sidebar a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 3px 0;
+      padding: 12px;
+      border-radius: 10px;
+      color: var(--cart-muted);
+      font-size: 14px;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .cart-sidebar a:hover {
+      background: var(--cart-cream);
+      color: var(--cart-text);
+    }
+
+    .cart-sidebar a.active {
+      background: var(--cart-cream);
+      color: var(--cart-gold);
+      font-weight: 700;
+    }
+
+    .cart-sidebar a.cart-sidebar-logout {
+      margin-top: 18px;
+      border-top: 1px solid var(--cart-line);
+      border-radius: 0 0 10px 10px;
+      color: #9a5d4a;
+    }
+
+    .cart-sidebar a.cart-sidebar-logout:hover {
+      background: #fff3ef;
+    }
+
+    /* ---------- OVERLAY ---------- */
+
+    .cart-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(30, 26, 22, 0.45);
+      z-index: 999;
+    }
+
+    .cart-overlay.show {
+      display: block;
+    }
+
+    /* ---------- MOBILE HEADER ---------- */
+
+    .cart-mobile-header {
+      display: none;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      background: var(--cart-paper);
+      border-bottom: 1px solid var(--cart-line);
+      position: sticky;
+      top: 0;
+      z-index: 900;
+    }
+
+    .cart-hamburger {
+      background: none;
+      border: 1px solid var(--cart-line);
+      border-radius: 9px;
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      color: var(--cart-dark);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .cart-hamburger:hover {
+      background: var(--cart-cream);
+    }
+
+    .cart-mobile-header h1 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--cart-text);
+    }
+
+    /* ---------- MAIN CONTENT ---------- */
+
+    .cart-main {
+      padding: 30px 20px 60px;
+    }
+
+    .cart-card {
+      background: var(--cart-paper);
+      border: 1px solid var(--cart-line);
+      border-radius: 18px;
+      box-shadow: 0 4px 20px rgba(40, 30, 15, 0.045);
+      padding: 26px;
+      margin-bottom: 22px;
+    }
+
+    .cart-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--cart-muted);
+    }
+
+    .cart-empty h2 {
+      color: var(--cart-text);
+      margin-bottom: 12px;
+    }
+
+    /* ---------- CART ITEMS ---------- */
+
+    .cart-row {
+      display: grid;
+      grid-template-columns: 70px 1fr auto auto;
+      align-items: center;
+      gap: 18px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--cart-line);
+    }
+
+    .mini-cover {
+      width: 70px;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border-radius: 8px;
+      background: var(--cart-cream);
+      color: var(--cart-muted);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .cart-row b {
+      color: var(--cart-text);
+    }
+
+    .cart-row button {
+      border: 0;
+      background: none;
+      color: #9a5d4a;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .cart-row button:hover {
+      text-decoration: underline;
+    }
+
+    .cart-total {
+      margin-top: 22px;
+      padding-top: 20px;
+      border-top: 1px solid var(--cart-line);
+      text-align: right;
+      color: var(--cart-text);
+      font-size: 18px;
+    }
+
+    .cart-total b {
+      color: var(--cart-gold);
+    }
+
+    /* ---------- DESKTOP ---------- */
+
+    @media (min-width: 900px) {
+      .cart-mobile-header {
+        display: none !important;
+      }
+
+      .cart-sidebar {
+        transform: translateX(0);
+      }
+
+      .cart-main {
+        margin-left: 260px;
+        padding: 40px 40px 80px;
+      }
+
+      .cart-overlay {
+        display: none !important;
+      }
+    }
+
+    /* ---------- TABLET & MOBILE ---------- */
+
+    @media (max-width: 899px) {
+      .cart-mobile-header {
+        display: flex;
+      }
+
+      .cart-row {
+        grid-template-columns: 60px 1fr;
+        gap: 12px;
+      }
+
+      .mini-cover {
+        width: 60px;
+        height: 80px;
+      }
+
+      .cart-row > div:nth-child(3),
+      .cart-row > button {
+        grid-column: 2;
+      }
+
+      .cart-row > button {
+        justify-self: start;
+      }
+
+      .cart-card {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Overlay -->
+  <div
+    class="cart-overlay"
+    id="cartOverlay"
+    onclick="closeCartMenu()">
+  </div>
+
+  <!-- =========================
+       NAVBAR
+  ========================= -->
+
+  <nav class="navbar">
+    <div class="container nav-inner">
+
+      <a class="logo" href="home.html">
+        <span class="logo-mark">S</span>
+
+        <span class="logo-text">
+          <h2>$ΛИŦIΛИØ</h2>
+          <small>BOOKS</small>
+        </span>
+      </a>
+
+      <div class="nav-links">
+        <a href="home.html">Home</a>
+        <a href="books.html">Books</a>
+        <a href="library.html">My Library</a>
+      </div>
+
+      <div class="nav-actions">
+        <a
+          class="icon-btn active"
+          href="cart.html"
+          aria-label="Shopping cart">
+          🛒 <sup data-cart-count>0</sup>
+        </a>
+
+        <a class="account-btn" href="account.html">
+          My account
+        </a>
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- =========================
+       MOBILE HEADER
+  ========================= -->
+
+  <header class="cart-mobile-header">
+    <button
+      class="cart-hamburger"
+      onclick="toggleCartMenu()"
+      aria-label="Open menu">
+      ☰
+    </button>
+
+    <h1>Shopping Cart</h1>
+  </header>
+
+  <!-- =========================
+       SIDEBAR
+  ========================= -->
+
+  <aside class="cart-sidebar" id="cartSidebar">
+
+    <b class="cart-sidebar-title">MENU</b>
+
+    <a href="home.html">
+      <span>⌂</span>
+      <span>Home</span>
+    </a>
+
+    <a href="books.html">
+      <span>▤</span>
+      <span>Books</span>
+    </a>
+
+    <a href="library.html">
+      <span>▦</span>
+      <span>My Library</span>
+    </a>
+
+    <a href="account.html">
+      <span>♙</span>
+      <span>My Account</span>
+    </a>
+
+    <a class="active" href="cart.html">
+      <span>🛒</span>
+      <span>Cart</span>
+    </a>
+
+    <a
+      href="login.html"
+      class="cart-sidebar-logout"
+      id="sidebarLogout">
+      <span>↪</span>
+      <span>Logout</span>
+    </a>
+
+  </aside>
+
+  <!-- =========================
+       MAIN CONTENT
+  ========================= -->
+
+  <main class="page">
+
+    <div class="container cart-main">
+
+      <div class="eyebrow">Your Cart</div>
+
+      <h1 class="page-title">Shopping Cart</h1>
+
+      <!-- IMPORTANT:
+           data-cart is required by renderCart() in app.js.
+      -->
+
+      <div
+        class="cart-card"
+        id="cartContent"
+        data-cart>
+
+        <div class="cart-empty">
+          <h2>Your cart is empty</h2>
+
+          <p>
+            Browse our collection and add some books.
+          </p>
+
+          <br>
+
+          <a href="books.html" class="gold-btn">
+            Explore Books
+          </a>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <script src="js/app.js"></script>
+  <script src="js/auth.js"></script>
+
+  <script>
+    /* =========================
+       MENU TOGGLE
+    ========================= */
+
+    const sidebar = document.getElementById("cartSidebar");
+    const overlay = document.getElementById("cartOverlay");
+
+    function toggleCartMenu() {
+      sidebar.classList.toggle("open");
+      overlay.classList.toggle("show");
+    }
+
+    function closeCartMenu() {
+      sidebar.classList.remove("open");
+      overlay.classList.remove("show");
+    }
+
+    // Close menu when clicking a link on mobile
+    document.querySelectorAll(".cart-sidebar a").forEach(link => {
+      link.addEventListener("click", () => {
+        if (window.innerWidth < 900) {
+          closeCartMenu();
+        }
+      });
+    });
+
+    // Logout
+    document
+      .getElementById("sidebarLogout")
+      .addEventListener("click", function (event) {
+        event.preventDefault();
+        logout();
+      });
+  </script>
+
+</body>
+</html>
+```

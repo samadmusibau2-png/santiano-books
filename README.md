@@ -14,3 +14,4 @@ Adds a development admin dashboard for uploading and managing real eBooks.
 8. Open `admin/index.html` with VS Code Live Server.
 
 Uploaded PDFs are stored locally for development. Before public launch, move eBooks to private object storage and use short-lived authorized access links. Payment processing comes later and must be verified server-side.
+"# santiano-books" 

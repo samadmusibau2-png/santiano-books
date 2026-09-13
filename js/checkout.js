@@ -1,125 +1,198 @@
-const CHECKOUT_API = "http://localhost:3000/api";
+/* =====================================================
+   SANTIANO BOOKS — CHECKOUT.JS
+===================================================== */
 
+const CHECKOUT_API =
+  window.SANTIANO_API ||
+  "http://localhost:3000/api";
+
+/*
+   Paystack TEST public key.
+
+   Replace this with your own pk_test_... key.
+
+   IMPORTANT:
+   Never put sk_test_... or sk_live_... here.
+*/
 const PAYSTACK_PUBLIC_KEY =
-  "pk_live_87c9da8d951f26772deb4bdfa3c3f2d832b9de25;"
+  "pk_test_394587bc6abb11baca45c1bd8774d55861d6216c";
 
-/* =========================
+
+/* =====================================================
    AUTH TOKEN
-========================= */
+===================================================== */
 
 function getToken() {
   return localStorage.getItem("santianoToken");
 }
 
-/* =========================
-   GET PENDING ORDER
-========================= */
 
-function getPendingOrder() {
+/* =====================================================
+   REPURCHASE CHECK
+===================================================== */
+
+function isRepurchase() {
+  return (
+    localStorage.getItem("santianoRepurchase") === "1"
+  );
+}
+
+
+/* =====================================================
+   GET USER
+===================================================== */
+
+function getCheckoutUser() {
   try {
-    const saved = JSON.parse(
-      localStorage.getItem("santianoPendingOrder") || "null"
+    return JSON.parse(
+      localStorage.getItem("santianoUser") || "null"
     );
-
-    if (!saved) return null;
-
-    return {
-      ...saved,
-      id: Number(saved.id),
-
-      total_kobo: Number(
-        saved.total_kobo ?? saved.total_cents ?? 0
-      ),
-
-      currency: String(
-        saved.currency || "NGN"
-      ).toUpperCase(),
-    };
   } catch (error) {
-    console.error("Unable to read pending order:", error);
+    console.error("Unable to read user:", error);
     return null;
   }
 }
 
-/* =========================
-   GET CART
-========================= */
+
+/* =====================================================
+   GET CART KEY
+===================================================== */
+
+function getCheckoutCartKey() {
+  const user = getCheckoutUser();
+
+  if (user && user.id) {
+    return `santianoCart_${user.id}`;
+  }
+
+  return "santianoCart_guest";
+}
+
+
+/* =====================================================
+   GET PENDING ORDER
+===================================================== */
+
+function getPendingOrder() {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem(
+        "santianoPendingOrder"
+      ) || "null"
+    );
+
+    if (!saved) {
+      return null;
+    }
+
+    return {
+      ...saved,
+
+      id: Number(saved.id),
+
+      total_kobo: Number(
+        saved.total_kobo || 0
+      ),
+
+      currency: String(
+        saved.currency || "NGN"
+      ).toUpperCase()
+    };
+
+  } catch (error) {
+    console.error(
+      "Unable to read pending order:",
+      error
+    );
+
+    return null;
+  }
+}
+
+
+/* =====================================================
+   GET CHECKOUT CART
+===================================================== */
 
 function getCheckoutCart() {
   try {
-    /*
-      app.js stores carts using:
-      santianoCart_1
-      santianoCart_2
-      santianoCart_guest
-
-      Therefore, use the same getCart()
-      function from app.js.
-    */
-
-    if (typeof getCart === "function") {
-      return getCart();
-    }
-
     const cart = JSON.parse(
-      localStorage.getItem("santianoCart_guest") || "[]"
+      localStorage.getItem(
+        getCheckoutCartKey()
+      ) || "[]"
     );
 
-    return Array.isArray(cart) ? cart : [];
+    return Array.isArray(cart)
+      ? cart
+      : [];
+
   } catch (error) {
-    console.error("Unable to read checkout cart:", error);
+    console.error(
+      "Unable to read checkout cart:",
+      error
+    );
+
     return [];
   }
 }
 
-/* =========================
+
+/* =====================================================
    FORMAT NGN
-========================= */
+===================================================== */
 
 function checkoutMoney(kobo) {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number(kobo || 0) / 100);
+  return new Intl.NumberFormat(
+    "en-NG",
+    {
+      style: "currency",
+      currency: "NGN",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }
+  ).format(
+    Number(kobo || 0) / 100
+  );
 }
 
-/* =========================
+
+/* =====================================================
    ESCAPE HTML
-========================= */
+===================================================== */
 
 function escapeHTML(value) {
   return String(value ?? "").replace(
     /[&<>"']/g,
-    character => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;",
-    })[character]
+    character =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      })[character]
   );
 }
 
-/* =========================
+
+/* =====================================================
    COVER URL
-========================= */
+===================================================== */
 
 function getCoverUrl(coverKey) {
-  if (!coverKey) return "";
-
-  /*
-    Use coverUrl() from app.js when available.
-  */
-
-  if (typeof coverUrl === "function") {
-    return coverUrl(coverKey);
+  if (!coverKey) {
+    return "";
   }
 
   const cleanKey = String(coverKey)
-    .replace(/^uploads[\\/]+/, "")
-    .replace(/[\\]+/g, "/");
+    .replace(
+      /^uploads[\\/]+/,
+      ""
+    )
+    .replace(
+      /[\\]+/g,
+      "/"
+    );
 
   return `${CHECKOUT_API}/files/${cleanKey
     .split("/")
@@ -127,46 +200,106 @@ function getCoverUrl(coverKey) {
     .join("/")}`;
 }
 
-/* =========================
+
+/* =====================================================
    CLEAR CHECKOUT
-========================= */
+===================================================== */
 
 function clearCheckout() {
-  localStorage.removeItem("santianoPendingOrder");
+  const cartKey =
+    getCheckoutCartKey();
 
   /*
-    Remove the actual current user's cart.
+    REPURCHASE:
+    Restore the customer's original cart.
   */
 
-  if (typeof getCartKey === "function") {
-    localStorage.removeItem(getCartKey());
+  if (isRepurchase()) {
+    const originalCart =
+      localStorage.getItem(
+        "santianoRepurchaseOriginalCart"
+      );
+
+    if (originalCart !== null) {
+      localStorage.setItem(
+        cartKey,
+        originalCart
+      );
+    }
+
+    localStorage.removeItem(
+      "santianoRepurchaseOriginalCart"
+    );
+
+    localStorage.removeItem(
+      "santianoRepurchase"
+    );
+
   } else {
-    localStorage.removeItem("santianoCart_guest");
+
+    /*
+      NORMAL CHECKOUT:
+      Remove the normal cart.
+    */
+
+    localStorage.removeItem(
+      cartKey
+    );
   }
+
+  localStorage.removeItem(
+    "santianoPendingOrder"
+  );
 }
 
-/* =========================
+
+/* =====================================================
    RENDER CHECKOUT
-========================= */
+===================================================== */
 
 function renderCheckout() {
-  const container = document.querySelector("[data-checkout]");
+  const container =
+    document.querySelector(
+      "[data-checkout]"
+    );
 
   if (!container) {
-    console.error("Checkout container not found.");
+    console.error(
+      "Checkout container not found."
+    );
+
     return;
   }
 
-  const order = getPendingOrder();
-  const cart = getCheckoutCart();
+  const token = getToken();
 
-  console.log("Pending order:", order);
-  console.log("Checkout cart:", cart);
+  if (!token) {
+    window.location.href =
+      "login.html";
 
-  if (!getToken()) {
-    window.location.href = "login.html";
     return;
   }
+
+  const order =
+    getPendingOrder();
+
+  const cart =
+    getCheckoutCart();
+
+  console.log(
+    "Pending order:",
+    order
+  );
+
+  console.log(
+    "Checkout cart:",
+    cart
+  );
+
+
+  /* =================================================
+     NO ORDER
+  ================================================= */
 
   if (
     !order ||
@@ -175,34 +308,52 @@ function renderCheckout() {
   ) {
     container.innerHTML = `
       <div class="cart-box">
-        <h2>No pending order</h2>
+
+        <h2>
+          No pending order
+        </h2>
 
         <p class="muted">
-          Please return to your cart and start checkout again.
+          Please return to your cart
+          and start checkout again.
         </p>
 
-        <a href="cart.html" class="gold-btn">
+        <a
+          href="cart.html"
+          class="gold-btn"
+        >
           RETURN TO CART
         </a>
+
       </div>
     `;
 
     return;
   }
 
+
+  /* =================================================
+     CURRENCY
+  ================================================= */
+
   if (order.currency !== "NGN") {
     container.innerHTML = `
       <div class="cart-box">
+
         <div class="eyebrow">
           ORDER #${escapeHTML(order.id)}
         </div>
 
-        <h2>New checkout required</h2>
+        <h2>
+          New checkout required
+        </h2>
 
         <p class="muted">
-          This order was created using
+          This order uses
           ${escapeHTML(order.currency)}.
-          Santiano Books now uses NGN for payments.
+
+          Santiano Books currently
+          uses NGN for payments.
         </p>
 
         <button
@@ -212,137 +363,261 @@ function renderCheckout() {
         >
           CREATE NEW ORDER
         </button>
+
       </div>
     `;
 
     document
       .getElementById("newOrderButton")
-      ?.addEventListener("click", () => {
-        clearCheckout();
-        window.location.href = "cart.html";
-      });
+      ?.addEventListener(
+        "click",
+        () => {
+          clearCheckout();
+
+          window.location.href =
+            "cart.html";
+        }
+      );
 
     return;
   }
 
+
+  /* =================================================
+     CART
+  ================================================= */
+
   if (!cart.length) {
     container.innerHTML = `
       <div class="cart-box">
-        <h2>Your cart is empty</h2>
+
+        <h2>
+          Your cart is empty
+        </h2>
 
         <p class="muted">
-          We could not find the books connected to this order.
+          We could not find the
+          books connected to this
+          order.
         </p>
 
-        <a href="cart.html" class="gold-btn">
+        <a
+          href="cart.html"
+          class="gold-btn"
+        >
           RETURN TO CART
         </a>
+
       </div>
     `;
 
     return;
   }
 
-  const itemsHTML = cart
-    .map(item => {
-      const quantity = Number(item.qty || 1);
 
-      const price = Number(
-        item.price_kobo ?? item.price_cents ?? 0
-      );
+  /* =================================================
+     ITEMS
+  ================================================= */
 
-      const subtotal = price * quantity;
+  const itemsHTML =
+    cart
+      .map(item => {
 
-      const cover = getCoverUrl(item.cover_key);
+        const quantity =
+          Number(item.qty || 1);
 
-      return `
-        <article class="checkout-item">
+        const price =
+          Number(
+            item.price_kobo ||
+            0
+          );
 
-          <div class="checkout-item-cover">
-            ${
-              cover
-                ? `
-                  <img
-                    src="${escapeHTML(cover)}"
-                    alt="${escapeHTML(item.title)} cover"
-                    onerror="this.style.display='none';"
-                  >
-                `
-                : `
-                  <span>
-                    ${escapeHTML(item.title)}
-                  </span>
-                `
-            }
-          </div>
+        const subtotal =
+          price * quantity;
 
-          <div class="checkout-item-info">
+        const cover =
+          getCoverUrl(
+            item.cover_key
+          );
 
-            <h3>
-              ${escapeHTML(item.title)}
-            </h3>
+        return `
+          <article
+            class="checkout-item"
+          >
 
-            <p class="muted">
-              By ${escapeHTML(
-                item.author || "Santiano Books"
+            <div
+              class="checkout-item-cover"
+            >
+
+              ${
+                cover
+                  ? `
+                    <img
+                      src="${escapeHTML(cover)}"
+                      alt="${escapeHTML(
+                        item.title
+                      )} cover"
+                      onerror="
+                        this.style.display='none';
+                      "
+                    >
+                  `
+                  : `
+                    <span>
+                      ${escapeHTML(
+                        item.title
+                      )}
+                    </span>
+                  `
+              }
+
+            </div>
+
+
+            <div
+              class="checkout-item-info"
+            >
+
+              <h3>
+                ${escapeHTML(
+                  item.title
+                )}
+              </h3>
+
+              <p class="muted">
+                By
+                ${escapeHTML(
+                  item.author ||
+                  "Santiano Books"
+                )}
+              </p>
+
+              <p class="muted">
+                Quantity:
+                ${quantity}
+              </p>
+
+            </div>
+
+
+            <strong
+              class="checkout-item-price"
+            >
+              ${checkoutMoney(
+                subtotal
               )}
-            </p>
+            </strong>
 
-            <p class="muted">
-              Quantity: ${quantity}
-            </p>
+          </article>
+        `;
+      })
+      .join("");
 
-          </div>
 
-          <strong class="checkout-item-price">
-            ${checkoutMoney(subtotal)}
-          </strong>
+  const totalKobo =
+    Number(
+      order.total_kobo || 0
+    );
 
-        </article>
-      `;
-    })
-    .join("");
 
-  const totalKobo = Number(
-    order.total_kobo ?? order.total_cents ?? 0
-  );
+  /* =================================================
+     CHECKOUT UI
+  ================================================= */
 
   container.innerHTML = `
-    <section class="cart-box checkout-box">
+    <section
+      class="cart-box checkout-box"
+    >
 
       <div class="eyebrow">
-        ORDER #${escapeHTML(order.id)}
+        ORDER #${escapeHTML(
+          order.id
+        )}
       </div>
 
-      <h2>Your Order</h2>
 
-      <div class="checkout-items">
+      ${
+        isRepurchase()
+          ? `
+            <div
+              class="ownership-status"
+              style="margin-bottom:10px"
+            >
+              ✓ ALREADY OWNED
+            </div>
+          `
+          : ""
+      }
+
+
+      <h2>
+        Your Order
+      </h2>
+
+
+      <div
+        class="checkout-items"
+      >
         ${itemsHTML}
       </div>
 
-      <div class="cart-total checkout-total">
-        <span>Total</span>
+
+      <div
+        class="cart-total checkout-total"
+      >
+
+        <span>
+          Total
+        </span>
 
         <strong>
-          ${checkoutMoney(totalKobo)}
+          ${checkoutMoney(
+            totalKobo
+          )}
         </strong>
+
       </div>
 
-      <div class="checkout-payment">
 
-        <h3>Payment</h3>
+      <div
+        class="checkout-payment"
+      >
+
+        <h3>
+          Payment
+        </h3>
+
 
         <p class="muted">
           Pay securely with Paystack.
         </p>
+
+
+        ${
+          isRepurchase()
+            ? `
+              <p class="muted">
+                You already own this book.
+                This payment creates a new
+                purchase and makes the book
+                available for download again.
+              </p>
+            `
+            : ""
+        }
+
 
         <button
           class="gold-btn"
           id="payButton"
           type="button"
         >
-          PAY ${checkoutMoney(totalKobo)}
+          PAY
+          ${checkoutMoney(
+            totalKobo
+          )}
         </button>
+
 
         <p
           id="checkoutMessage"
@@ -354,26 +629,42 @@ function renderCheckout() {
     </section>
   `;
 
+
   document
     .getElementById("payButton")
-    ?.addEventListener("click", beginPayment);
+    ?.addEventListener(
+      "click",
+      beginPayment
+    );
 }
 
-/* =========================
+
+/* =====================================================
    INITIALIZE PAYMENT
-========================= */
+===================================================== */
 
 async function beginPayment() {
-  const message = document.getElementById(
-    "checkoutMessage"
-  );
+  const message =
+    document.getElementById(
+      "checkoutMessage"
+    );
 
-  const button = document.getElementById(
-    "payButton"
-  );
+  const button =
+    document.getElementById(
+      "payButton"
+    );
 
-  const order = getPendingOrder();
-  const token = getToken();
+  const order =
+    getPendingOrder();
+
+  const token =
+    getToken();
+
+
+  if (!message || !button) {
+    return;
+  }
+
 
   if (
     !order ||
@@ -386,38 +677,78 @@ async function beginPayment() {
     return;
   }
 
+
   if (!token) {
-    window.location.href = "login.html";
+    window.location.href =
+      "login.html";
+
     return;
   }
 
+
   button.disabled = true;
-  button.textContent = "PREPARING PAYMENT...";
-  message.textContent = "Checking your order...";
+
+  button.textContent =
+    "PREPARING PAYMENT...";
+
+  message.textContent =
+    "Checking your order...";
+
 
   try {
-    const response = await fetch(
-      `${CHECKOUT_API}/orders/paystack/initialize`,
-      {
-        method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+    /* ==============================================
+       CHECK PUBLIC KEY CONFIGURATION
+    ============================================== */
 
-        body: JSON.stringify({
-          order_id: order.id,
-        }),
-      }
-    );
+    if (
+      !PAYSTACK_PUBLIC_KEY ||
+      !PAYSTACK_PUBLIC_KEY.startsWith(
+        "pk_test_"
+      )
+    ) {
+      throw new Error(
+        "Paystack test public key is not configured correctly."
+      );
+    }
 
-    const data = await response.json();
+
+    /* ==============================================
+       INITIALIZE PAYMENT THROUGH BACKEND
+    ============================================== */
+
+    const response =
+      await fetch(
+        `${CHECKOUT_API}/orders/paystack/initialize`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${token}`
+          },
+
+          body:
+            JSON.stringify({
+              order_id:
+                order.id
+            })
+        }
+      );
+
+
+    const data =
+      await response.json();
+
 
     console.log(
       "Paystack initialize response:",
       data
     );
+
 
     if (!response.ok) {
       throw new Error(
@@ -426,73 +757,123 @@ async function beginPayment() {
       );
     }
 
+
     if (!data.access_code) {
       throw new Error(
         "Paystack did not return an access code."
       );
     }
 
-    if (typeof PaystackPop === "undefined") {
+
+    /* ==============================================
+       PAYSTACK SCRIPT CHECK
+    ============================================== */
+
+    if (
+      typeof PaystackPop ===
+      "undefined"
+    ) {
       throw new Error(
-        "Paystack script was not loaded."
+        "Paystack script was not loaded. Check checkout.html."
       );
     }
+
 
     message.textContent =
       "Opening secure payment window...";
 
-    const popup = new PaystackPop();
+
+    /* ==============================================
+       OPEN PAYSTACK
+    ============================================== */
+
+    const popup =
+      new PaystackPop();
+
 
     popup.resumeTransaction(
       data.access_code
     );
 
+
     window.santianoPaystackReference =
       data.reference;
+
 
     window.santianoPaystackOrderId =
       order.id;
 
-    button.textContent = "VERIFY PAYMENT";
+
+    /* ==============================================
+       CHANGE BUTTON TO VERIFY
+    ============================================== */
+
+    button.textContent =
+      "VERIFY PAYMENT";
+
+
     button.disabled = false;
 
+
     button.onclick = () => {
-      verifyPayment(data.reference);
+      verifyPayment(
+        data.reference
+      );
     };
+
 
     message.textContent =
       "After completing payment, click VERIFY PAYMENT.";
 
+
   } catch (error) {
+
     console.error(
       "Payment initialization error:",
       error
     );
 
+
     message.textContent =
       error.message;
 
+
     button.disabled = false;
 
+
     button.textContent =
-      `PAY ${checkoutMoney(order.total_kobo)}`;
+      `PAY ${checkoutMoney(
+        order.total_kobo
+      )}`;
   }
 }
 
-/* =========================
+
+/* =====================================================
    VERIFY PAYMENT
-========================= */
+===================================================== */
 
-async function verifyPayment(reference) {
-  const message = document.getElementById(
-    "checkoutMessage"
-  );
+async function verifyPayment(
+  reference
+) {
+  const message =
+    document.getElementById(
+      "checkoutMessage"
+    );
 
-  const button = document.getElementById(
-    "payButton"
-  );
+  const button =
+    document.getElementById(
+      "payButton"
+    );
 
-  const token = getToken();
+  const token =
+    getToken();
+
+
+  if (!message || !button) {
+    return;
+  }
+
 
   if (!reference) {
     message.textContent =
@@ -501,40 +882,57 @@ async function verifyPayment(reference) {
     return;
   }
 
+
   if (!token) {
-    window.location.href = "login.html";
+    window.location.href =
+      "login.html";
+
     return;
   }
 
+
   button.disabled = true;
-  button.textContent = "VERIFYING...";
+
+  button.textContent =
+    "VERIFYING...";
 
   message.textContent =
     "Verifying your payment...";
 
+
   try {
-    const response = await fetch(
-      `${CHECKOUT_API}/orders/paystack/verify`,
-      {
-        method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+    const response =
+      await fetch(
+        `${CHECKOUT_API}/orders/paystack/verify`,
+        {
+          method: "POST",
 
-        body: JSON.stringify({
-          reference,
-        }),
-      }
-    );
+          headers: {
+            "Content-Type":
+              "application/json",
 
-    const data = await response.json();
+            Authorization:
+              `Bearer ${token}`
+          },
+
+          body:
+            JSON.stringify({
+              reference
+            })
+        }
+      );
+
+
+    const data =
+      await response.json();
+
 
     console.log(
       "Payment verification response:",
       data
     );
+
 
     if (!response.ok) {
       throw new Error(
@@ -543,39 +941,66 @@ async function verifyPayment(reference) {
       );
     }
 
+
+    /* ==============================================
+       PAYMENT SUCCESS
+    ============================================== */
+
     message.textContent =
-      "Payment successful. Your books are now available.";
+      "Payment successful. Your book is now available to download.";
+
 
     button.textContent =
       "PAYMENT SUCCESSFUL";
 
+
     button.disabled = true;
+
+
+    /*
+      IMPORTANT:
+
+      Only clear checkout after the
+      backend has successfully verified
+      the payment and updated the library.
+    */
 
     clearCheckout();
 
-    setTimeout(() => {
-      window.location.href = "library.html";
-    }, 1800);
+
+    setTimeout(
+      () => {
+        window.location.href =
+          "library.html";
+      },
+      1500
+    );
+
 
   } catch (error) {
+
     console.error(
       "Payment verification error:",
       error
     );
 
+
     message.textContent =
       error.message;
 
+
     button.disabled = false;
+
 
     button.textContent =
       "VERIFY PAYMENT";
   }
 }
 
-/* =========================
+
+/* =====================================================
    START
-========================= */
+===================================================== */
 
 document.addEventListener(
   "DOMContentLoaded",

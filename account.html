@@ -44,8 +44,8 @@
 
         .account-sidebar-title {
             display: block;
-            margin-bottom: 18px;
-            padding-bottom: 14px;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
             border-bottom: 1px solid var(--account-line);
             color: var(--account-text);
             font-size: 12px;
@@ -77,10 +77,18 @@
         }
 
         .account-sidebar-logout {
-            margin-top: 18px !important;
+            margin-top: 10px !important;
             border-top: 1px solid var(--account-line);
             border-radius: 0 0 10px 10px !important;
             color: #9a5d4a !important;
+        }
+
+        .account-sidebar-logout:hover {
+            background: #fff3ef !important;
+        }
+
+        .account-section {
+            margin-top: 28px;
         }
 
         .account-overlay {
@@ -327,6 +335,14 @@
                 margin-left: 260px;
                 padding: 40px 40px 80px;
             }
+
+            .account-mobile-header {
+                display: none !important;
+            }
+
+            .account-overlay {
+                display: none !important;
+            }
         }
 
         @media (max-width: 899px) {
@@ -401,17 +417,14 @@
 
 <body class="account-page">
 
-    <div class="account-overlay"
-         id="accountOverlay"
-         onclick="closeAccountMenu()"></div>
+    <div class="account-overlay" id="accountOverlay" onclick="closeAccountMenu()"></div>
 
     <nav class="navbar">
         <div class="container nav-inner">
             <a class="logo" href="home.html">
                 <span class="logo-mark">S</span>
-
                 <span class="logo-text">
-                    <h2>$ΛИŦiΛИØ</h2>
+                    <h2>Santiano</h2>
                     <small>BOOKS</small>
                 </span>
             </a>
@@ -423,16 +436,12 @@
             </div>
 
             <div class="nav-actions">
-                <a class="icon-btn"
-                   href="cart.html"
-                   aria-label="Shopping cart">
+                <a class="icon-btn" href="cart.html" aria-label="Shopping cart">
                     🛒
                     <sup data-cart-count>0</sup>
                 </a>
 
-                <button class="outline-btn"
-                        id="logoutButton"
-                        type="button">
+                <button class="outline-btn" id="logoutButton" type="button">
                     Logout
                 </button>
             </div>
@@ -440,54 +449,75 @@
     </nav>
 
     <header class="account-mobile-header">
-        <button class="account-hamburger"
-                onclick="toggleAccountMenu()"
-                aria-label="Open menu">
-            ☰
-        </button>
-
+        <button class="account-hamburger" onclick="toggleAccountMenu()" aria-label="Open menu">☰</button>
         <h1>My Account</h1>
     </header>
 
     <aside class="account-sidebar" id="accountSidebar">
-        <b class="account-sidebar-title">MY ACCOUNT</b>
 
-        <a class="active" href="account.html">
-            <span>▦</span>
-            <span>Dashboard</span>
+        <!-- MAIN MENU -->
+        <b class="account-sidebar-title">MENU</b>
+
+        <a href="home.html">
+            <span>⌂</span>
+            <span>Home</span>
+        </a>
+
+        <a href="books.html">
+            <span>▤</span>
+            <span>Books</span>
         </a>
 
         <a href="library.html">
-            <span>▤</span>
+            <span>▦</span>
             <span>My Library</span>
         </a>
 
-        <a href="#orders">
-            <span>◷</span>
-            <span>My Orders</span>
-        </a>
-
-        <a href="#wishlist">
-            <span>♡</span>
-            <span>Wishlist</span>
-        </a>
-
-        <a href="#profile">
+        <a class="active" href="account.html">
             <span>♙</span>
-            <span>Profile</span>
+            <span>My Account</span>
         </a>
 
-        <a href="#settings">
-            <span>⚙</span>
-            <span>Settings</span>
+        <a href="cart.html">
+            <span>🛒</span>
+            <span>Cart</span>
         </a>
 
-        <a href="#"
-           class="account-sidebar-logout"
-           id="sidebarLogout">
+        <a href="#" class="account-sidebar-logout" id="sidebarLogout">
             <span>↪</span>
             <span>Logout</span>
         </a>
+
+        <!-- ACCOUNT SECTION -->
+        <div class="account-section">
+            <b class="account-sidebar-title">ACCOUNT</b>
+
+            <a href="account.html">
+                <span>▦</span>
+                <span>Dashboard</span>
+            </a>
+
+            <a href="#orders">
+                <span>◷</span>
+                <span>My Orders</span>
+            </a>
+
+            <a href="#wishlist">
+                <span>♡</span>
+                <span>Wishlist</span>
+            </a>
+
+            <a href="#profile">
+                <span>♙</span>
+                <span>Profile</span>
+            </a>
+
+            <a href="#settings">
+                <span>⚙</span>
+                <span>Settings</span>
+            </a>
+        </div>
+
     </aside>
 
     <main class="page">
@@ -533,36 +563,30 @@
                     <div class="account-stat">
                         <div class="account-stat-icon">▤</div>
                         <span class="account-stat-label">Books Owned</span>
-                        <b class="account-stat-value"
-                           data-books-owned>0</b>
+                        <b class="account-stat-value" data-books-owned>0</b>
                     </div>
 
                     <div class="account-stat">
                         <div class="account-stat-icon">◷</div>
                         <span class="account-stat-label">Orders</span>
-                        <b class="account-stat-value"
-                           data-orders-count>0</b>
+                        <b class="account-stat-value" data-orders-count>0</b>
                     </div>
 
                     <div class="account-stat">
                         <div class="account-stat-icon">♡</div>
                         <span class="account-stat-label">Wishlist</span>
-                        <b class="account-stat-value"
-                           data-wishlist-count>0</b>
+                        <b class="account-stat-value" data-wishlist-count>0</b>
                     </div>
                 </div>
 
                 <div class="account-card" id="orders">
                     <h2>Recent Purchases</h2>
 
-                    <p class="muted"
-                       id="accountMessage"
-                       style="margin-top:8px">
+                    <p class="muted" id="accountMessage" style="margin-top:8px">
                         Loading your purchases...
                     </p>
 
-                    <div class="purchase-list"
-                         id="recentPurchases"></div>
+                    <div class="purchase-list" id="recentPurchases"></div>
                 </div>
 
             </section>
@@ -572,11 +596,8 @@
     <script src="js/auth.js"></script>
 
     <script>
-        const sidebar =
-            document.getElementById("accountSidebar");
-
-        const overlay =
-            document.getElementById("accountOverlay");
+        const sidebar = document.getElementById("accountSidebar");
+        const overlay = document.getElementById("accountOverlay");
 
         function toggleAccountMenu() {
             sidebar.classList.toggle("open");
@@ -588,15 +609,13 @@
             overlay.classList.remove("show");
         }
 
-        document
-            .querySelectorAll(".account-sidebar a")
-            .forEach(link => {
-                link.addEventListener("click", () => {
-                    if (window.innerWidth < 900) {
-                        closeAccountMenu();
-                    }
-                });
+        document.querySelectorAll(".account-sidebar a").forEach(link => {
+            link.addEventListener("click", () => {
+                if (window.innerWidth < 900) {
+                    closeAccountMenu();
+                }
             });
+        });
 
         const ACCOUNT_API = "http://localhost:3000/api";
         const token = getAuthToken();
@@ -608,14 +627,9 @@
         function displayUserDetails() {
             const user = getCurrentUser();
 
-            const nameElement =
-                document.querySelector("[data-account-name]");
-
-            const emailElement =
-                document.querySelector("[data-account-email]");
-
-            const welcomeElement =
-                document.querySelector("[data-user-name]");
+            const nameElement = document.querySelector("[data-account-name]");
+            const emailElement = document.querySelector("[data-account-email]");
+            const welcomeElement = document.querySelector("[data-user-name]");
 
             if (!user) {
                 nameElement.textContent = "Reader";
@@ -624,13 +638,7 @@
                 return;
             }
 
-            const userName =
-                user.name ||
-                user.full_name ||
-                user.fullName ||
-                user.username ||
-                "Reader";
-
+            const userName = user.name || user.full_name || user.fullName || user.username || "Reader";
             const userEmail = user.email || "No email";
 
             nameElement.textContent = userName;
@@ -640,7 +648,6 @@
 
         async function apiRequest(url, options = {}) {
             const response = await fetch(url, options);
-
             let data = {};
 
             try {
@@ -650,39 +657,22 @@
             }
 
             if (!response.ok) {
-                throw new Error(
-                    data.error ||
-                    `Request failed with status ${response.status}`
-                );
+                throw new Error(data.error || `Request failed with status ${response.status}`);
             }
 
             return data;
         }
 
-        /*
-         * Creates the correct image URL for the server:
-         *
-         * /api/files + /covers/filename.jpg
-         *
-         * Example:
-         * http://localhost:3000/api/files/covers/book.jpg
-         */
         function createCoverUrl(coverKey) {
-            if (!coverKey) {
-                return "";
-            }
+            if (!coverKey) return "";
 
             let cleanKey = String(coverKey).trim();
 
-            if (
-                cleanKey.startsWith("http://") ||
-                cleanKey.startsWith("https://")
-            ) {
+            if (cleanKey.startsWith("http://") || cleanKey.startsWith("https://")) {
                 return cleanKey;
             }
 
             cleanKey = cleanKey.replace(/^\/+/, "");
-
             cleanKey = cleanKey.replace(/^api\/files\//, "");
             cleanKey = cleanKey.replace(/^uploads\//, "");
 
@@ -690,44 +680,24 @@
         }
 
         async function loadAccountData() {
-            const message =
-                document.getElementById("accountMessage");
-
-            const container =
-                document.getElementById("recentPurchases");
+            const message = document.getElementById("accountMessage");
+            const container = document.getElementById("recentPurchases");
 
             try {
-                const headers = {
-                    Authorization: `Bearer ${token}`
-                };
+                const headers = { Authorization: `Bearer ${token}` };
 
-                const ordersData = await apiRequest(
-                    `${ACCOUNT_API}/orders`,
-                    { headers }
-                );
-
+                const ordersData = await apiRequest(`${ACCOUNT_API}/orders`, { headers });
                 const orders = ordersData.orders || [];
 
-                const libraryData = await apiRequest(
-                    `${ACCOUNT_API}/library`,
-                    { headers }
-                );
-
+                const libraryData = await apiRequest(`${ACCOUNT_API}/library`, { headers });
                 const books = libraryData.books || [];
 
-                document.querySelector("[data-books-owned]")
-                    .textContent = books.length;
-
-                document.querySelector("[data-orders-count]")
-                    .textContent = orders.length;
-
-                document.querySelector("[data-wishlist-count]")
-                    .textContent = "0";
+                document.querySelector("[data-books-owned]").textContent = books.length;
+                document.querySelector("[data-orders-count]").textContent = orders.length;
+                document.querySelector("[data-wishlist-count]").textContent = "0";
 
                 if (!orders.length) {
-                    message.textContent =
-                        "You haven't made any purchases yet.";
-
+                    message.textContent = "You haven't made any purchases yet.";
                     container.innerHTML = "";
                     return;
                 }
@@ -735,7 +705,6 @@
                 message.textContent = "";
 
                 const purchasedBookIds = new Set();
-
                 orders.forEach(order => {
                     (order.items || []).forEach(item => {
                         purchasedBookIds.add(Number(item.book_id));
@@ -755,59 +724,35 @@
                     return;
                 }
 
-                container.innerHTML = recentBooks
-                    .slice(0, 5)
-                    .map(book => {
-                        const cover =
-                            createCoverUrl(book.cover_key);
+                container.innerHTML = recentBooks.slice(0, 5).map(book => {
+                    const cover = createCoverUrl(book.cover_key);
 
-                        return `
-                            <div class="purchase-item">
-                                <div class="purchase-cover">
-                                    ${
-                                        cover
-                                            ? `
-                                                <img
-                                                    src="${cover}"
-                                                    alt="${escapeHtml(book.title)}"
-                                                    onerror="this.style.display='none'; this.parentElement.textContent='BOOK';"
-                                                >
-                                              `
-                                            : "BOOK"
-                                    }
-                                </div>
-
-                                <div class="purchase-details">
-                                    <strong class="purchase-title">
-                                        ${escapeHtml(book.title)}
-                                    </strong>
-
-                                    <div class="purchase-author">
-                                        ${escapeHtml(
-                                            book.author ||
-                                            "Santiano Books"
-                                        )}
-                                    </div>
-                                </div>
-
-                                <a href="library.html"
-                                   class="purchase-read">
-                                    READ
-                                </a>
+                    return `
+                        <div class="purchase-item">
+                            <div class="purchase-cover">
+                                ${
+                                    cover
+                                        ? `<img src="${cover}" alt="${escapeHtml(book.title)}"
+                                               onerror="this.style.display='none'; this.parentElement.textContent='BOOK';">`
+                                        : "BOOK"
+                                }
                             </div>
-                        `;
-                    })
-                    .join("");
+
+                            <div class="purchase-details">
+                                <strong class="purchase-title">${escapeHtml(book.title)}</strong>
+                                <div class="purchase-author">
+                                    ${escapeHtml(book.author || "Santiano Books")}
+                                </div>
+                            </div>
+
+                            <a href="library.html" class="purchase-read">READ</a>
+                        </div>
+                    `;
+                }).join("");
 
             } catch (error) {
-                console.error(
-                    "Account loading error:",
-                    error
-                );
-
-                message.textContent =
-                    error.message ||
-                    "Unable to load account data.";
+                console.error("Account loading error:", error);
+                message.textContent = error.message || "Unable to load account data.";
             }
         }
 
@@ -820,16 +765,25 @@
                 .replaceAll("'", "&#039;");
         }
 
-        document
-            .getElementById("logoutButton")
-            .addEventListener("click", () => logout());
-
-        document
-            .getElementById("sidebarLogout")
-            .addEventListener("click", event => {
-                event.preventDefault();
+        // Safe logout
+        function safeLogout() {
+            if (typeof logout === "function") {
                 logout();
-            });
+            } else if (typeof window.logout === "function") {
+                window.logout();
+            } else {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                sessionStorage.clear();
+                window.location.href = "index.html";
+            }
+        }
+
+        document.getElementById("logoutButton").addEventListener("click", safeLogout);
+        document.getElementById("sidebarLogout").addEventListener("click", function (e) {
+            e.preventDefault();
+            safeLogout();
+        });
 
         displayUserDetails();
         loadAccountData();

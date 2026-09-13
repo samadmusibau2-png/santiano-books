@@ -27,7 +27,7 @@ app.use(
   cors({
     origin:
       process.env.CLIENT_URL ||
-      "https://server-d4e973adx-sammads.vercel.app",
+      "http://127.0.0.1:5500",
 
     credentials: true
   })

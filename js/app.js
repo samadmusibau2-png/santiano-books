@@ -7,11 +7,13 @@
 ========================= */
 
 window.SANTIANO_API =
-  window.SANTIANO_API || "http://localhost:3000/api";
+  window.SANTIANO_API ||
+ "http://localhost:3000/api";
 
 function apiUrl(path = "") {
   return `${window.SANTIANO_API}/${String(path).replace(/^\/+/, "")}`;
 }
+
 
 /* =========================
    APPLICATION STATE
@@ -21,7 +23,8 @@ let books = [];
 let activeCategory = "All";
 let searchTerm = "";
 
-/* =========================
+
+/* ===============
    MONEY — NGN / KOBO
 ========================= */
 
@@ -33,6 +36,7 @@ function money(kobo) {
     maximumFractionDigits: 2,
   }).format(Number(kobo || 0) / 100);
 }
+
 
 /* =========================
    COVER URL
@@ -62,6 +66,7 @@ function coverUrl(coverKey) {
     .join("/")}`;
 }
 
+
 /* =========================
    AUTHENTICATION
 ========================= */
@@ -89,9 +94,12 @@ function logout() {
   localStorage.removeItem("santianoUser");
   localStorage.removeItem("santianoPendingOrder");
   localStorage.removeItem("santianoCheckoutReturn");
+  localStorage.removeItem("santianoRepurchaseOriginalCart");
+  localStorage.removeItem("santianoRepurchase");
 
   window.location.href = "index.html";
 }
+
 
 /* =========================
    USER-SPECIFIC CART
@@ -126,6 +134,7 @@ function setCart(cart) {
   );
 }
 
+
 /* =========================
    CART COUNT
 ========================= */
@@ -143,6 +152,7 @@ function updateCartCount() {
       element.textContent = count;
     });
 }
+
 
 /* =========================
    ADD TO CART
@@ -174,11 +184,13 @@ function addToCart(id) {
       author: book.author,
       description: book.description,
       category: book.category,
+
       price_kobo: Number(
         book.price_kobo ??
         book.price_cents ??
         0
       ),
+
       cover_key: book.cover_key,
       qty: 1,
     });
@@ -189,6 +201,7 @@ function addToCart(id) {
 
   alert(`${book.title} added to cart.`);
 }
+
 
 /* =========================
    REMOVE FROM CART
@@ -204,8 +217,9 @@ function removeFromCart(id) {
   renderCart();
 }
 
+
 /* =========================
-   CHECKOUT
+   NORMAL CHECKOUT
 ========================= */
 
 async function startCheckout() {
@@ -238,11 +252,15 @@ async function startCheckout() {
       apiUrl("orders/draft"),
       {
         method: "POST",
+
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ items }),
+
+        body: JSON.stringify({
+          items,
+        }),
       }
     );
 
@@ -250,7 +268,8 @@ async function startCheckout() {
 
     if (!response.ok) {
       throw new Error(
-        data.error || "Unable to create order."
+        data.error ||
+        "Unable to create order."
       );
     }
 
@@ -260,9 +279,13 @@ async function startCheckout() {
       );
     }
 
-    const orderId = Number(data.order.id);
+    const orderId =
+      Number(data.order.id);
 
-    if (!Number.isInteger(orderId) || orderId <= 0) {
+    if (
+      !Number.isInteger(orderId) ||
+      orderId <= 0
+    ) {
       throw new Error(
         "The server returned an invalid order ID."
       );
@@ -270,14 +293,18 @@ async function startCheckout() {
 
     const pendingOrder = {
       ...data.order,
+
       id: orderId,
+
       total_kobo: Number(
         data.order.total_kobo ??
         data.order.total_cents ??
         0
       ),
+
       currency: String(
-        data.order.currency || "NGN"
+        data.order.currency ||
+        "NGN"
       ).toUpperCase(),
     };
 
@@ -286,7 +313,9 @@ async function startCheckout() {
       JSON.stringify(pendingOrder)
     );
 
-    window.location.href = "checkout.html";
+    window.location.href =
+      "checkout.html";
+
   } catch (error) {
     console.error(
       "Santiano checkout error:",
@@ -300,23 +329,254 @@ async function startCheckout() {
   }
 }
 
+
+/* =========================
+   REPURCHASE BOOK
+========================= */
+
+async function repurchaseBook(bookId) {
+  const token = getAuthToken();
+
+  if (!token) {
+    localStorage.setItem(
+      "santianoCheckoutReturn",
+      "library.html"
+    );
+
+    window.location.href = "login.html";
+    return;
+  }
+
+  const numericBookId = Number(bookId);
+
+  if (
+    !Number.isInteger(numericBookId) ||
+    numericBookId <= 0
+  ) {
+    alert("Invalid book.");
+    return;
+  }
+
+  try {
+
+    /* Find book */
+
+    const book =
+      books.find(
+        item =>
+          Number(item.id) ===
+          numericBookId
+      );
+
+    let bookData = book;
+
+    if (!bookData) {
+      const bookResponse =
+        await fetch(
+          apiUrl(
+            `books/${numericBookId}`
+          )
+        );
+
+      const responseData =
+        await bookResponse.json();
+
+      if (!bookResponse.ok) {
+        throw new Error(
+          responseData.error ||
+          "Unable to find this book."
+        );
+      }
+
+      bookData =
+        responseData.book;
+    }
+
+    if (!bookData) {
+      throw new Error(
+        "Book information was not found."
+      );
+    }
+
+
+    /* Create new order */
+
+    const response =
+      await fetch(
+        apiUrl("orders/draft"),
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${token}`,
+          },
+
+          body: JSON.stringify({
+            items: [
+              {
+                book_id:
+                  numericBookId,
+
+                quantity: 1,
+              },
+            ],
+          }),
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+        "Unable to create repurchase order."
+      );
+    }
+
+    if (!data.order) {
+      throw new Error(
+        "The server did not return an order."
+      );
+    }
+
+    const orderId =
+      Number(data.order.id);
+
+    if (
+      !Number.isInteger(orderId) ||
+      orderId <= 0
+    ) {
+      throw new Error(
+        "The server returned an invalid order ID."
+      );
+    }
+
+
+    /* Save original cart */
+
+    const originalCart =
+      getCart();
+
+    localStorage.setItem(
+      "santianoRepurchaseOriginalCart",
+      JSON.stringify(originalCart)
+    );
+
+
+    /* Temporary checkout cart */
+
+    setCart([
+      {
+        id: numericBookId,
+
+        title:
+          bookData.title,
+
+        author:
+          bookData.author,
+
+        description:
+          bookData.description,
+
+        category:
+          bookData.category,
+
+        price_kobo:
+          Number(
+            bookData.price_kobo ??
+            bookData.price_cents ??
+            0
+          ),
+
+        cover_key:
+          bookData.cover_key,
+
+        qty: 1,
+      },
+    ]);
+
+
+    /* Save pending order */
+
+    const pendingOrder = {
+      ...data.order,
+
+      id: orderId,
+
+      total_kobo:
+        Number(
+          data.order.total_kobo ??
+          data.order.total_cents ??
+          0
+        ),
+
+      currency:
+        String(
+          data.order.currency ||
+          "NGN"
+        ).toUpperCase(),
+    };
+
+    localStorage.setItem(
+      "santianoPendingOrder",
+      JSON.stringify(
+        pendingOrder
+      )
+    );
+
+
+    /* Tell checkout.js this is a repurchase */
+
+    localStorage.setItem(
+      "santianoRepurchase",
+      "1"
+    );
+
+
+    /* Open checkout */
+
+    window.location.href =
+      "checkout.html";
+
+  } catch (error) {
+    console.error(
+      "Santiano repurchase error:",
+      error
+    );
+
+    alert(
+      error.message ||
+      "Unable to continue with payment."
+    );
+  }
+}
+
+
 /* =========================
    BOOK CARD
 ========================= */
 
 function bookCard(book) {
-  const cover = coverUrl(book.cover_key);
+  const cover =
+    coverUrl(book.cover_key);
 
-  const price = Number(
-    book.price_kobo ??
-    book.price_cents ??
-    0
-  );
+  const price =
+    Number(
+      book.price_kobo ??
+      book.price_cents ??
+      0
+    );
 
   return `
     <article class="book-card">
 
       <div class="cover">
+
         ${
           cover
             ? `
@@ -334,16 +594,27 @@ function bookCard(book) {
               >
             `
             : `
-              <h3>${escapeHtml(book.title)}</h3>
-              <small>SANTIANO BOOKS</small>
+              <h3>
+                ${escapeHtml(book.title)}
+              </h3>
+
+              <small>
+                SANTIANO BOOKS
+              </small>
             `
         }
+
       </div>
 
-      <h3>${escapeHtml(book.title)}</h3>
+      <h3>
+        ${escapeHtml(book.title)}
+      </h3>
 
       <div class="category">
-        ${escapeHtml(book.category || "General")}
+        ${escapeHtml(
+          book.category ||
+          "General"
+        )}
       </div>
 
       <div class="price">
@@ -354,14 +625,18 @@ function bookCard(book) {
 
         <button
           type="button"
-          onclick="location.href='book.html?id=${Number(book.id)}'"
+          onclick="
+            location.href='book.html?id=${Number(book.id)}'
+          "
         >
           VIEW
         </button>
 
         <button
           type="button"
-          onclick="addToCart(${Number(book.id)})"
+          onclick="
+            addToCart(${Number(book.id)})
+          "
         >
           ADD
         </button>
@@ -372,34 +647,41 @@ function bookCard(book) {
   `;
 }
 
+
 /* =========================
    LOAD BOOKS
 ========================= */
 
 async function loadBooks() {
-  const grid = document.querySelector(
-    "[data-books-grid]"
-  );
-
-  try {
-    const response = await fetch(
-      apiUrl("books")
+  const grid =
+    document.querySelector(
+      "[data-books-grid]"
     );
 
-    const data = await response.json();
+  try {
+    const response =
+      await fetch(
+        apiUrl("books")
+      );
+
+    const data =
+      await response.json();
 
     if (!response.ok) {
       throw new Error(
-        data.error || "Unable to load books."
+        data.error ||
+        "Unable to load books."
       );
     }
 
-    books = Array.isArray(data.books)
-      ? data.books
-      : [];
+    books =
+      Array.isArray(data.books)
+        ? data.books
+        : [];
 
     renderBooks();
     renderBook();
+
   } catch (error) {
     console.error(
       "Santiano Books API error:",
@@ -416,77 +698,110 @@ async function loadBooks() {
   }
 }
 
+
 /* =========================
    FILTER AND SEARCH BOOKS
 ========================= */
 
 function filterBooks(category) {
-  activeCategory = category || "All";
+  activeCategory =
+    category || "All";
 
-  const grid = document.querySelector(
-    "[data-books-grid]"
-  );
+  const grid =
+    document.querySelector(
+      "[data-books-grid]"
+    );
 
-  const resultCount = document.querySelector(
-    "[data-books-result-count]"
-  );
+  const resultCount =
+    document.querySelector(
+      "[data-books-result-count]"
+    );
 
   if (!grid) return;
 
-  const normalizedSearch = searchTerm
-    .trim()
-    .toLowerCase();
-
-  const filteredBooks = books.filter(book => {
-    const matchesCategory =
-      activeCategory === "All" ||
-      String(book.category || "")
-        .trim()
-        .toLowerCase() ===
-      activeCategory.trim().toLowerCase();
-
-    const searchableText = [
-      book.title,
-      book.author,
-      book.category,
-      book.description,
-    ]
-      .filter(Boolean)
-      .join(" ")
+  const normalizedSearch =
+    searchTerm
+      .trim()
       .toLowerCase();
 
-    const matchesSearch =
-      !normalizedSearch ||
-      searchableText.includes(normalizedSearch);
+  const filteredBooks =
+    books.filter(book => {
 
-    return matchesCategory && matchesSearch;
-  });
+      const matchesCategory =
+        activeCategory === "All" ||
+        String(
+          book.category || ""
+        )
+          .trim()
+          .toLowerCase() ===
+        activeCategory
+          .trim()
+          .toLowerCase();
+
+      const searchableText = [
+        book.title,
+        book.author,
+        book.category,
+        book.description,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch =
+        !normalizedSearch ||
+        searchableText.includes(
+          normalizedSearch
+        );
+
+      return (
+        matchesCategory &&
+        matchesSearch
+      );
+    });
+
 
   if (resultCount) {
     resultCount.textContent =
       `${filteredBooks.length} book${
-        filteredBooks.length === 1 ? "" : "s"
+        filteredBooks.length === 1
+          ? ""
+          : "s"
       } found`;
   }
 
+
   if (!filteredBooks.length) {
+
     grid.innerHTML = `
-      <div class="muted" style="padding:30px 0">
-        <h3>No books found</h3>
+      <div
+        class="muted"
+        style="padding:30px 0"
+      >
+
+        <h3>
+          No books found
+        </h3>
+
         <p>
-          Try another search term or choose
-          a different category.
+          Try another search term
+          or choose a different
+          category.
         </p>
+
       </div>
     `;
 
     return;
   }
 
-  grid.innerHTML = filteredBooks
-    .map(bookCard)
-    .join("");
+
+  grid.innerHTML =
+    filteredBooks
+      .map(bookCard)
+      .join("");
 }
+
 
 /* =========================
    CATEGORY BUTTONS
@@ -498,181 +813,281 @@ function setupCategories() {
       "[data-category]"
     );
 
-  categoryLinks.forEach(link => {
-    link.addEventListener("click", event => {
-      event.preventDefault();
+  categoryLinks.forEach(
+    link => {
 
-      const category =
-        link.dataset.category;
+      link.addEventListener(
+        "click",
+        event => {
 
-      categoryLinks.forEach(item =>
-        item.classList.remove("active")
+          event.preventDefault();
+
+          const category =
+            link.dataset.category;
+
+          categoryLinks.forEach(
+            item =>
+              item.classList.remove(
+                "active"
+              )
+          );
+
+          link.classList.add(
+            "active"
+          );
+
+          filterBooks(
+            category
+          );
+
+        }
       );
 
-      link.classList.add("active");
-
-      filterBooks(category);
-    });
-  });
+    }
+  );
 }
+
 
 /* =========================
    BOOK SEARCH
 ========================= */
 
 function setupBookSearch() {
+
   const searchInput =
-    document.querySelector("#book-search");
+    document.querySelector(
+      "#book-search"
+    );
 
   const clearButton =
-    document.querySelector("#clear-search");
+    document.querySelector(
+      "#clear-search"
+    );
 
   if (!searchInput) return;
 
-  searchInput.addEventListener("input", event => {
-    searchTerm = event.target.value;
 
-    if (clearButton) {
-      clearButton.classList.toggle(
-        "visible",
-        Boolean(searchTerm.trim())
+  searchInput.addEventListener(
+    "input",
+    event => {
+
+      searchTerm =
+        event.target.value;
+
+      if (clearButton) {
+
+        clearButton.classList.toggle(
+          "visible",
+          Boolean(
+            searchTerm.trim()
+          )
+        );
+
+      }
+
+      filterBooks(
+        activeCategory
       );
-    }
 
-    filterBooks(activeCategory);
-  });
+    }
+  );
+
 
   if (clearButton) {
-    clearButton.addEventListener("click", () => {
-      searchTerm = "";
-      searchInput.value = "";
 
-      clearButton.classList.remove("visible");
+    clearButton.addEventListener(
+      "click",
+      () => {
 
-      filterBooks(activeCategory);
-      searchInput.focus();
-    });
+        searchTerm = "";
+
+        searchInput.value = "";
+
+        clearButton.classList.remove(
+          "visible"
+        );
+
+        filterBooks(
+          activeCategory
+        );
+
+        searchInput.focus();
+
+      }
+    );
+
   }
 }
+
 
 /* =========================
    RENDER BOOKS
 ========================= */
 
 function renderBooks() {
-  const grid = document.querySelector(
-    "[data-books-grid]"
-  );
+
+  const grid =
+    document.querySelector(
+      "[data-books-grid]"
+    );
 
   if (!grid) return;
 
-  filterBooks(activeCategory);
+  filterBooks(
+    activeCategory
+  );
 }
+
 
 /* =========================
    RENDER CART
 ========================= */
 
 function renderCart() {
-  const box = document.querySelector(
-    "[data-cart]"
-  );
+
+  const box =
+    document.querySelector(
+      "[data-cart]"
+    );
 
   if (!box) return;
 
-  const cart = getCart();
+  const cart =
+    getCart();
+
 
   if (!cart.length) {
+
     box.innerHTML = `
       <p class="muted">
+
         Your cart is empty.
 
         <a
           href="books.html"
-          style="color:#b8893d;font-weight:700"
+          style="
+            color:#b8893d;
+            font-weight:700
+          "
         >
           Explore books →
         </a>
+
       </p>
     `;
 
     return;
   }
 
+
   let total = 0;
 
-  const cartItems = cart
-    .map(item => {
-      const quantity = Number(
-        item.qty || 1
-      );
 
-      const price = Number(
-        item.price_kobo ??
-        item.price_cents ??
-        0
-      );
+  const cartItems =
+    cart
+      .map(item => {
 
-      total += price * quantity;
+        const quantity =
+          Number(
+            item.qty || 1
+          );
 
-      const cover = coverUrl(
-        item.cover_key
-      );
+        const price =
+          Number(
+            item.price_kobo ??
+            item.price_cents ??
+            0
+          );
 
-      return `
-        <div class="cart-row">
+        total +=
+          price * quantity;
 
-          <div class="mini-cover">
-            ${
-              cover
-                ? `
-                  <img
-                    src="${escapeHtml(cover)}"
-                    alt="${escapeHtml(item.title)} cover"
-                    style="
-                      width:100%;
-                      height:100%;
-                      object-fit:cover;
-                      display:block;
-                    "
-                  >
-                `
-                : escapeHtml(item.title)
-            }
-          </div>
 
-          <div>
-            <b>${escapeHtml(item.title)}</b>
+        const cover =
+          coverUrl(
+            item.cover_key
+          );
 
-            <div class="muted">
-              ${escapeHtml(
-                item.category || "General"
-              )}
+
+        return `
+          <div class="cart-row">
+
+            <div class="mini-cover">
+
+              ${
+                cover
+                  ? `
+                    <img
+                      src="${escapeHtml(cover)}"
+                      alt="${escapeHtml(item.title)} cover"
+                      style="
+                        width:100%;
+                        height:100%;
+                        object-fit:cover;
+                        display:block;
+                      "
+                    >
+                  `
+                  : escapeHtml(
+                      item.title
+                    )
+              }
+
             </div>
+
+
+            <div>
+
+              <b>
+                ${escapeHtml(
+                  item.title
+                )}
+              </b>
+
+              <div class="muted">
+                ${escapeHtml(
+                  item.category ||
+                  "General"
+                )}
+              </div>
+
+            </div>
+
+
+            <div>
+              ${money(price)}
+              ×
+              ${quantity}
+            </div>
+
+
+            <button
+              type="button"
+              onclick="
+                removeFromCart(
+                  ${Number(item.id)}
+                )
+              "
+            >
+              Remove
+            </button>
+
           </div>
+        `;
 
-          <div>
-            ${money(price)} × ${quantity}
-          </div>
+      })
+      .join("");
 
-          <button
-            type="button"
-            onclick="removeFromCart(${Number(item.id)})"
-          >
-            Remove
-          </button>
-
-        </div>
-      `;
-    })
-    .join("");
 
   box.innerHTML = `
     ${cartItems}
 
     <div class="cart-total">
+
       Total:
-      <b>${money(total)}</b>
+      <b>
+        ${money(total)}
+      </b>
 
       <br>
 
@@ -684,127 +1099,218 @@ function renderCart() {
       >
         Proceed to Checkout
       </button>
+
     </div>
   `;
 }
 
-/* =========================
+
+/* =====================================================
    BOOK DETAIL
-========================= */
+   Responsive structure for book.html
+===================================================== */
 
 function renderBook() {
-  const element = document.querySelector(
-    "[data-book-detail]"
-  );
 
-  if (!element || !books.length) return;
+  const element =
+    document.querySelector(
+      "[data-book-detail]"
+    );
+
+  if (
+    !element ||
+    !books.length
+  ) {
+    return;
+  }
+
 
   const id =
     Number(
       new URLSearchParams(
         location.search
       ).get("id")
-    ) || books[0].id;
+    ) ||
+    Number(books[0].id);
+
 
   const book =
     books.find(
-      item => Number(item.id) === id
-    ) || books[0];
+      item =>
+        Number(item.id) === id
+    ) ||
+    books[0];
 
-  const cover = coverUrl(
-    book.cover_key
-  );
 
-  const price = Number(
-    book.price_kobo ??
-    book.price_cents ??
-    0
-  );
+  const cover =
+    coverUrl(
+      book.cover_key
+    );
+
+
+  const price =
+    Number(
+      book.price_kobo ??
+      book.price_cents ??
+      0
+    );
+
 
   element.innerHTML = `
-    <div class="cover">
-      ${
-        cover
-          ? `
-            <img
-              src="${escapeHtml(cover)}"
-              alt="${escapeHtml(book.title)} cover"
-              style="
-                width:100%;
-                height:100%;
-                object-fit:cover;
-                border-radius:inherit;
-                display:block;
-              "
-            >
-          `
-          : `
-            <h3>${escapeHtml(book.title)}</h3>
-            <small>SANTIANO BOOKS</small>
-          `
-      }
-    </div>
 
-    <div>
+    <div class="book-detail-card">
 
-      <div class="eyebrow">
-        Digital eBook
+      <!-- BOOK COVER -->
+
+      <div class="book-detail-cover">
+
+        ${
+          cover
+            ? `
+              <img
+                src="${escapeHtml(cover)}"
+                alt="${escapeHtml(book.title)} cover"
+                onerror="
+                  this.style.display='none';
+                  this.parentElement.innerHTML='<h3>SANTIANO BOOKS</h3>';
+                "
+              >
+            `
+            : `
+              <div
+                style="
+                  width:100%;
+                  height:100%;
+                  display:flex;
+                  align-items:center;
+                  justify-content:center;
+                  text-align:center;
+                  padding:20px;
+                  box-sizing:border-box;
+                "
+              >
+
+                <div>
+
+                  <h3>
+                    ${escapeHtml(
+                      book.title
+                    )}
+                  </h3>
+
+                  <small>
+                    SANTIANO BOOKS
+                  </small>
+
+                </div>
+
+              </div>
+            `
+        }
+
       </div>
 
-      <h1>${escapeHtml(book.title)}</h1>
 
-      <p>
-        <strong>
-          By ${escapeHtml(
-            book.author || "Santiano Books"
+      <!-- BOOK INFORMATION -->
+
+      <div class="book-detail-info">
+
+        <div class="eyebrow">
+          Digital eBook
+        </div>
+
+
+        <h1>
+          ${escapeHtml(
+            book.title
           )}
-        </strong>
-      </p>
+        </h1>
 
-      <div class="category">
-        ${escapeHtml(
-          book.category || "General"
-        )}
-      </div>
 
-      <div class="price">
-        ${money(price)}
-      </div>
+        <p class="book-detail-author">
 
-      <p class="muted">
-        ${escapeHtml(
-          book.description ||
-          "No description available."
-        )}
-      </p>
+          By
+          <strong>
+            ${escapeHtml(
+              book.author ||
+              "Santiano Books"
+            )}
+          </strong>
 
-      <ul>
-        <li>Instant digital access after purchase</li>
-        <li>eBook / PDF format</li>
-        <li>Read on phone, tablet or computer</li>
-        <li>Personal library access</li>
-      </ul>
+        </p>
 
-      <div class="detail-actions">
 
-        <button
-          class="gold-btn"
-          type="button"
-          onclick="
-            addToCart(${Number(book.id)});
-            location.href='cart.html';
-          "
-        >
-          BUY NOW
-        </button>
+        <div class="category">
+          ${escapeHtml(
+            book.category ||
+            "General"
+          )}
+        </div>
 
-        <button
-          class="outline-btn"
-          type="button"
-          onclick="addToCart(${Number(book.id)})"
-        >
-          ADD TO CART
-        </button>
+
+        <div class="book-detail-price">
+          ${money(price)}
+        </div>
+
+
+        <p class="book-detail-description">
+
+          ${escapeHtml(
+            book.description ||
+            "No description available."
+          )}
+
+        </p>
+
+
+        <ul>
+
+          <li>
+            Instant digital access
+            after purchase
+          </li>
+
+          <li>
+            eBook / PDF format
+          </li>
+
+          <li>
+            Read on phone, tablet
+            or computer
+          </li>
+
+          <li>
+            Personal library access
+          </li>
+
+        </ul>
+
+
+        <div class="detail-actions">
+
+          <button
+            class="gold-btn book-detail-button"
+            type="button"
+            onclick="
+              addToCart(${Number(book.id)});
+              location.href='cart.html';
+            "
+          >
+            BUY NOW
+          </button>
+
+
+          <button
+            class="outline-btn book-detail-button"
+            type="button"
+            onclick="
+              addToCart(${Number(book.id)})
+            "
+          >
+            ADD TO CART
+          </button>
+
+        </div>
 
       </div>
 
@@ -812,22 +1318,26 @@ function renderBook() {
   `;
 }
 
+
 /* =========================
    ESCAPE HTML
 ========================= */
 
 function escapeHtml(value) {
+
   return String(value ?? "").replace(
     /[&<>"']/g,
-    character => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;",
-    })[character]
+    character =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      })[character]
   );
 }
+
 
 /* =========================
    START APPLICATION
@@ -836,10 +1346,16 @@ function escapeHtml(value) {
 document.addEventListener(
   "DOMContentLoaded",
   () => {
+
     updateCartCount();
+
     renderCart();
+
     setupCategories();
+
     setupBookSearch();
+
     loadBooks();
+
   }
 );

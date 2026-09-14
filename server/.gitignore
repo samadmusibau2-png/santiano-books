@@ -10,3 +10,4 @@ server/uploads/covers/*
 !server/uploads/covers/.gitkeep
 postgresql-18.6-1-windows-x64.exe
 *.log
+santiano_books_backup.sql

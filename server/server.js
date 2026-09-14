@@ -23,11 +23,32 @@ const PORT = process.env.PORT || 3000;
    CORS
 ========================= */
 
+const allowedOrigins = [
+  "http://127.0.0.1:5500",
+  "http://localhost:5500",
+  "https://santiano-books.vercel.app"
+];
+
 app.use(
   cors({
-    origin:
-      process.env.CLIENT_URL ||
-      "http://127.0.0.1:5500",
+    origin: function (origin, callback) {
+
+      // Allow requests without an Origin header.
+      // Useful for server-to-server requests and health checks.
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Allow approved frontend origins.
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Reject unknown origins.
+      return callback(
+        new Error("Not allowed by CORS")
+      );
+    },
 
     credentials: true
   })
@@ -64,8 +85,8 @@ app.use(
    FRONTEND FILES
 ========================= */
 
-// Frontend files are directly outside
-// the server folder.
+// Frontend files are directly
+// outside the server folder.
 
 const frontendPath = path.join(
   __dirname,
@@ -134,7 +155,14 @@ app.use(
 
     console.error(err);
 
-    res.status(400).json({
+    // CORS error
+    if (err.message === "Not allowed by CORS") {
+      return res.status(403).json({
+        error: "CORS: Origin not allowed"
+      });
+    }
+
+    res.status(500).json({
       error:
         err.message ||
         "Internal server error"
@@ -168,7 +196,7 @@ app.listen(
   () => {
 
     console.log(
-      `Santiano Books API running on http://localhost:${PORT}`
+      `Santiano Books API running on port ${PORT}`
     );
 
   }

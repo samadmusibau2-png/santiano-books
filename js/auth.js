@@ -7,7 +7,7 @@
 ========================= */
 
 window.SANTIANO_API =
-    window.SANTIANO_API || "http://localhost:3000/api";
+    window.SANTIANO_API || "https://santiano-books.onrender.com/api";
 
 function authApiUrl(path = "") {
     return `${window.SANTIANO_API}/${String(path).replace(/^\/+/, "")}`;

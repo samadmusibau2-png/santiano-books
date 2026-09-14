@@ -8,7 +8,7 @@
 
 window.SANTIANO_API =
   window.SANTIANO_API ||
- "http://localhost:3000/api";
+  "https://santiano-books.onrender.com/api";
 
 function apiUrl(path = "") {
   return `${window.SANTIANO_API}/${String(path).replace(/^\/+/, "")}`;
@@ -24,7 +24,7 @@ let activeCategory = "All";
 let searchTerm = "";
 
 
-/* ===============
+/* =========================
    MONEY — NGN / KOBO
 ========================= */
 
@@ -33,7 +33,7 @@ function money(kobo) {
     style: "currency",
     currency: "NGN",
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 2
   }).format(Number(kobo || 0) / 100);
 }
 
@@ -47,6 +47,7 @@ function coverUrl(coverKey) {
 
   let cleanKey = String(coverKey).trim();
 
+  // Already a complete URL
   if (
     cleanKey.startsWith("http://") ||
     cleanKey.startsWith("https://")
@@ -75,6 +76,7 @@ function getAuthToken() {
   return localStorage.getItem("santianoToken");
 }
 
+
 function getCurrentUser() {
   try {
     return JSON.parse(
@@ -85,9 +87,11 @@ function getCurrentUser() {
   }
 }
 
+
 function isLoggedIn() {
   return Boolean(getAuthToken());
 }
+
 
 function logout() {
   localStorage.removeItem("santianoToken");
@@ -115,6 +119,7 @@ function getCartKey() {
   return "santianoCart_guest";
 }
 
+
 function getCart() {
   try {
     const cart = JSON.parse(
@@ -126,6 +131,7 @@ function getCart() {
     return [];
   }
 }
+
 
 function setCart(cart) {
   localStorage.setItem(
@@ -192,7 +198,7 @@ function addToCart(id) {
       ),
 
       cover_key: book.cover_key,
-      qty: 1,
+      qty: 1
     });
   }
 
@@ -244,7 +250,7 @@ async function startCheckout() {
 
   const items = cart.map(item => ({
     book_id: Number(item.id),
-    quantity: Number(item.qty || 1),
+    quantity: Number(item.qty || 1)
   }));
 
   try {
@@ -255,12 +261,12 @@ async function startCheckout() {
 
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`
         },
 
         body: JSON.stringify({
-          items,
-        }),
+          items
+        })
       }
     );
 
@@ -305,7 +311,7 @@ async function startCheckout() {
       currency: String(
         data.order.currency ||
         "NGN"
-      ).toUpperCase(),
+      ).toUpperCase()
     };
 
     localStorage.setItem(
@@ -412,7 +418,7 @@ async function repurchaseBook(bookId) {
               "application/json",
 
             Authorization:
-              `Bearer ${token}`,
+              `Bearer ${token}`
           },
 
           body: JSON.stringify({
@@ -421,10 +427,10 @@ async function repurchaseBook(bookId) {
                 book_id:
                   numericBookId,
 
-                quantity: 1,
-              },
-            ],
-          }),
+                quantity: 1
+              }
+            ]
+          })
         }
       );
 
@@ -496,8 +502,8 @@ async function repurchaseBook(bookId) {
         cover_key:
           bookData.cover_key,
 
-        qty: 1,
-      },
+        qty: 1
+      }
     ]);
 
 
@@ -519,7 +525,7 @@ async function repurchaseBook(bookId) {
         String(
           data.order.currency ||
           "NGN"
-        ).toUpperCase(),
+        ).toUpperCase()
     };
 
     localStorage.setItem(
@@ -584,11 +590,11 @@ function bookCard(book) {
                 src="${escapeHtml(cover)}"
                 alt="${escapeHtml(book.title)} cover"
                 style="
-                  width:100%;
-                  height:100%;
-                  object-fit:cover;
-                  border-radius:inherit;
-                  display:block;
+                  width: 100%;
+                  height: 100%;
+                  object-fit: cover;
+                  border-radius: inherit;
+                  display: block;
                 "
                 onerror="this.style.display='none';"
               >
@@ -742,7 +748,7 @@ function filterBooks(category) {
         book.title,
         book.author,
         book.category,
-        book.description,
+        book.description
       ]
         .filter(Boolean)
         .join(" ")
@@ -776,7 +782,7 @@ function filterBooks(category) {
     grid.innerHTML = `
       <div
         class="muted"
-        style="padding:30px 0"
+        style="padding: 30px 0"
       >
 
         <h3>
@@ -966,8 +972,8 @@ function renderCart() {
         <a
           href="books.html"
           style="
-            color:#b8893d;
-            font-weight:700
+            color: #b8893d;
+            font-weight: 700;
           "
         >
           Explore books →
@@ -1021,10 +1027,10 @@ function renderCart() {
                       src="${escapeHtml(cover)}"
                       alt="${escapeHtml(item.title)} cover"
                       style="
-                        width:100%;
-                        height:100%;
-                        object-fit:cover;
-                        display:block;
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        display: block;
                       "
                     >
                   `
@@ -1085,6 +1091,7 @@ function renderCart() {
     <div class="cart-total">
 
       Total:
+
       <b>
         ${money(total)}
       </b>
@@ -1093,7 +1100,7 @@ function renderCart() {
 
       <button
         class="gold-btn"
-        style="margin-top:15px"
+        style="margin-top: 15px"
         type="button"
         onclick="startCheckout()"
       >
@@ -1179,14 +1186,14 @@ function renderBook() {
             : `
               <div
                 style="
-                  width:100%;
-                  height:100%;
-                  display:flex;
-                  align-items:center;
-                  justify-content:center;
-                  text-align:center;
-                  padding:20px;
-                  box-sizing:border-box;
+                  width: 100%;
+                  height: 100%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  text-align: center;
+                  padding: 20px;
+                  box-sizing: border-box;
                 "
               >
 
@@ -1230,6 +1237,7 @@ function renderBook() {
         <p class="book-detail-author">
 
           By
+
           <strong>
             ${escapeHtml(
               book.author ||
@@ -1333,7 +1341,7 @@ function escapeHtml(value) {
         "<": "&lt;",
         ">": "&gt;",
         '"': "&quot;",
-        "'": "&#039;",
+        "'": "&#039;"
       })[character]
   );
 }

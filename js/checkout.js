@@ -4,7 +4,7 @@
 
 const CHECKOUT_API =
   window.SANTIANO_API ||
-  "http://localhost:3000/api";
+  "https://santiano-books.onrender.com/api";
 
 /*
    Paystack TEST public key.
@@ -15,7 +15,7 @@ const CHECKOUT_API =
    Never put sk_test_... or sk_live_... here.
 */
 const PAYSTACK_PUBLIC_KEY =
-  "pk_test_394587bc6abb11baca45c1bd8774d55861d6216c";
+  "pk_live_87c9da8d951f26772deb4bdfa3c3f2d832b9de25";
 
 
 /* =====================================================

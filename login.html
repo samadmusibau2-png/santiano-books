@@ -1,170 +1,155 @@
 <!doctype html>
-
 <html lang="en">
 
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login — Santiano Books</title>
+    <link rel="stylesheet" href="css/style.css">
 
-```
-<meta charset="utf-8">
+    <style>
+        /* Password toggle styles */
+        .password-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
->
+        .password-wrapper input {
+            width: 100%;
+            padding-right: 44px; /* space for the eye button */
+        }
 
-<title>Login — Santiano Books</title>
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            color: #888;
+            font-size: 1.1rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-<link
-    rel="stylesheet"
-    href="css/style.css"
->
-```
+        .toggle-password:hover {
+            color: #d0a45c;
+        }
 
+        .toggle-password:focus {
+            outline: none;
+        }
+    </style>
 </head>
 
 <body>
 
 <nav class="navbar">
+    <div class="container nav-inner">
+        <a class="logo" href="index.html">
+            <span class="logo-mark">S</span>
+            <span class="logo-text">
+                <h2>Santiano</h2>
+                <small>BOOKS</small>
+            </span>
+        </a>
 
-```
-<div class="container nav-inner">
-
-    <a
-        class="logo"
-        href="index.html"
-    >
-
-        <span class="logo-mark">
-            S
-        </span>
-
-        <span class="logo-text">
-            <h2>Santiano</h2>
-            <small>BOOKS</small>
-        </span>
-
-    </a>
-
-    <a
-        class="outline-btn"
-        style="color:#d0a45c"
-        href="index.html"
-    >
-        Back Home
-    </a>
-
-</div>
-```
-
+        <a class="outline-btn" style="color:#d0a45c" href="index.html">
+            Back Home
+        </a>
+    </div>
 </nav>
 
 <main class="page">
-
-```
-<div class="form-wrap">
-
-    <div
-        class="eyebrow"
-        style="text-align:center"
-    >
-        SANTIANO BOOKS
-    </div>
-
-    <h1>
-        Welcome Back
-    </h1>
-
-    <p
-        class="muted"
-        style="text-align:center"
-    >
-        Login to continue your digital reading journey.
-    </p>
-
-
-    <form id="loginForm">
-
-        <div class="field">
-
-            <label for="loginEmail">
-                EMAIL ADDRESS
-            </label>
-
-            <input
-                id="loginEmail"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                autocomplete="email"
-                required
-            >
-
+    <div class="form-wrap">
+        <div class="eyebrow" style="text-align:center">
+            SANTIANO BOOKS
         </div>
 
+        <h3 style="text-align:center; margin-bottom:10px;">
+            
+            Welcome Back
+        </h3>
 
-        <div class="field">
+        <p class="muted" style="text-align:center">
+            Login to continue your digital reading journey.
+        </p>
 
-            <label for="loginPassword">
-                PASSWORD
-            </label>
+        <form id="loginForm">
 
-            <input
-                id="loginPassword"
-                name="password"
-                type="password"
-                placeholder="Your password"
-                autocomplete="current-password"
-                required
-            >
-
-            <div style="text-align:right; margin-top:8px;">
-
-                
-
+            <div class="field">
+                <label for="loginEmail">EMAIL ADDRESS</label>
+                <input
+                    id="loginEmail"
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    autocomplete="email"
+                    required
+                >
             </div>
 
+            <div class="field">
+                <label for="loginPassword">PASSWORD</label>
+                <div class="password-wrapper">
+                    <input
+                        id="loginPassword"
+                        name="password"
+                        type="password"
+                        placeholder="Your password"
+                        autocomplete="current-password"
+                        required
+                    >
+                    <button
+                        type="button"
+                        class="toggle-password"
+                        aria-label="Show password"
+                        onclick="togglePassword('loginPassword', this)"
+                    >
+                        👁️
+                    </button>
+                </div>
+
+                <div style="text-align:right; margin-top:8px;">
+                    <!-- You can add "Forgot password?" link here later -->
+                </div>
+            </div>
+
+            <button type="submit" class="gold-btn full" id="loginButton">
+                LOGIN
+            </button>
+        </form>
+
+        <p id="loginMessage" class="muted" style="text-align:center; margin-top:15px; min-height:20px;"></p>
+
+        <div class="form-foot">
+            Don't have an account?
+            <a href="register.html">Create one</a>
         </div>
-
-
-        <button
-            type="submit"
-            class="gold-btn full"
-            id="loginButton"
-        >
-            LOGIN
-        </button>
-
-    </form>
-
-
-    <p
-        id="loginMessage"
-        class="muted"
-        style="
-            text-align:center;
-            margin-top:15px;
-            min-height:20px;
-        "
-    ></p>
-
-
-    <div class="form-foot">
-
-        Don't have an account?
-
-        <a href="register.html">
-            Create one
-        </a>
-
     </div>
-
-</div>
-```
-
 </main>
 
 <script src="js/auth.js"></script>
 
-</body>
+<script>
+    function togglePassword(inputId, btn) {
+        const input = document.getElementById(inputId);
+        if (input.type === "password") {
+            input.type = "text";
+            btn.textContent = "🙈";          // hide icon
+            btn.setAttribute("aria-label", "Hide password");
+        } else {
+            input.type = "password";
+            btn.textContent = "👁️";          // show icon
+            btn.setAttribute("aria-label", "Show password");
+        }
+    }
+</script>
 
+</body>
 </html>

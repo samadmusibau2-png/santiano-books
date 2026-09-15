@@ -6,15 +6,16 @@ const API =
   window.SANTIANO_API ||
   "https://santiano-books.onrender.com/api";
 
+const SUPABASE_COVERS_URL =
+  "https://zzgjyznobxsfktcaaple.supabase.co/storage/v1/object/public/covers";
+
 
 /* =====================================================
    AUTH TOKEN
 ===================================================== */
 
 function getAuthToken() {
-  return localStorage.getItem(
-    "santianoToken"
-  );
+  return localStorage.getItem("santianoToken");
 }
 
 
@@ -25,9 +26,7 @@ function getAuthToken() {
 function getUser() {
   try {
     return JSON.parse(
-      localStorage.getItem(
-        "santianoUser"
-      ) || "null"
+      localStorage.getItem("santianoUser") || "null"
     );
   } catch {
     return null;
@@ -40,13 +39,9 @@ function getUser() {
 ===================================================== */
 
 function getCartKey() {
-  const user =
-    getUser();
+  const user = getUser();
 
-  if (
-    user &&
-    user.id
-  ) {
+  if (user && user.id) {
     return `santianoCart_${user.id}`;
   }
 
@@ -63,38 +58,23 @@ function coverUrl(coverKey) {
     return "";
   }
 
-  let cleanKey =
-    String(
-      coverKey
-    ).trim();
+  let cleanKey = String(coverKey).trim();
 
   if (
-    cleanKey.startsWith(
-      "http://"
-    ) ||
-    cleanKey.startsWith(
-      "https://"
-    )
+    cleanKey.startsWith("http://") ||
+    cleanKey.startsWith("https://")
   ) {
     return cleanKey;
   }
 
-  cleanKey =
-    cleanKey
-      .replace(
-        /^uploads[\\/]+/,
-        ""
-      )
-      .replace(
-        /[\\]+/g,
-        "/"
-      );
+  cleanKey = cleanKey
+    .replace(/^uploads[\\/]+covers[\\/]+/i, "")
+    .replace(/^covers[\\/]+/i, "")
+    .replace(/[\\]+/g, "/");
 
-  return `${API}/files/${cleanKey
+  return `${SUPABASE_COVERS_URL}/${cleanKey
     .split("/")
-    .map(
-      encodeURIComponent
-    )
+    .map(encodeURIComponent)
     .join("/")}`;
 }
 
@@ -104,26 +84,15 @@ function coverUrl(coverKey) {
 ===================================================== */
 
 function escapeHTML(value) {
-  return String(
-    value ?? ""
-  ).replace(
+  return String(value ?? "").replace(
     /[&<>"']/g,
     character =>
       ({
-        "&":
-          "&amp;",
-
-        "<":
-          "&lt;",
-
-        ">":
-          "&gt;",
-
-        '"':
-          "&quot;",
-
-        "'":
-          "&#039;",
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
       })[character]
   );
 }
@@ -138,30 +107,17 @@ function formatDate(date) {
     return "";
   }
 
-  const parsed =
-    new Date(date);
+  const parsed = new Date(date);
 
-  if (
-    Number.isNaN(
-      parsed.getTime()
-    )
-  ) {
+  if (Number.isNaN(parsed.getTime())) {
     return "";
   }
 
-  return parsed.toLocaleDateString(
-    "en-US",
-    {
-      year:
-        "numeric",
-
-      month:
-        "short",
-
-      day:
-        "numeric",
-    }
-  );
+  return parsed.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  });
 }
 
 
@@ -175,8 +131,7 @@ function redirectToLogin() {
     "library.html"
   );
 
-  window.location.href =
-    "login.html";
+  window.location.href = "login.html";
 }
 
 
@@ -184,127 +139,80 @@ function redirectToLogin() {
    DOWNLOAD
 ===================================================== */
 
-async function downloadBook(
-  bookId,
-  bookTitle
-) {
-  const token =
-    getAuthToken();
+async function downloadBook(bookId, bookTitle) {
+  const token = getAuthToken();
 
   if (!token) {
     redirectToLogin();
     return;
   }
 
-  const button =
-    document.querySelector(
-      `[data-download-book="${bookId}"]`
-    );
+  const button = document.querySelector(
+    `[data-download-book="${bookId}"]`
+  );
 
-  const originalText =
-    button
-      ? button.textContent
-      : "DOWNLOAD";
+  const originalText = button
+    ? button.textContent
+    : "DOWNLOAD";
 
   try {
     if (button) {
-      button.disabled =
-        true;
-
-      button.textContent =
-        "PREPARING...";
+      button.disabled = true;
+      button.textContent = "PREPARING...";
     }
 
-    const response =
-      await fetch(
-        `${API}/library/${encodeURIComponent(
-          bookId
-        )}/download`,
-        {
-          method:
-            "GET",
-
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-          },
+    const response = await fetch(
+      `${API}/library/${encodeURIComponent(bookId)}/download`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`
         }
-      );
+      }
+    );
 
-    if (
-      response.status ===
-      401
-    ) {
-      localStorage.removeItem(
-        "santianoToken"
-      );
-
-      localStorage.removeItem(
-        "santianoUser"
-      );
+    if (response.status === 401) {
+      localStorage.removeItem("santianoToken");
+      localStorage.removeItem("santianoUser");
 
       redirectToLogin();
       return;
     }
 
     const contentType =
-      response.headers.get(
-        "content-type"
-      ) || "";
+      response.headers.get("content-type") || "";
 
-    if (
-      !response.ok
-    ) {
+    if (!response.ok) {
       let message =
         "Unable to download this book.";
 
-      if (
-        contentType.includes(
-          "application/json"
-        )
-      ) {
-        const data =
-          await response
-            .json()
-            .catch(
-              () => ({})
-            );
+      if (contentType.includes("application/json")) {
+        const data = await response
+          .json()
+          .catch(() => ({}));
 
         message =
           data.error ||
           message;
       }
 
-      throw new Error(
-        message
-      );
+      throw new Error(message);
     }
-
-    /* ==============================================
-       GET PDF
-    ============================================== */
 
     const blob =
       await response.blob();
 
-    if (
-      !blob ||
-      blob.size === 0
-    ) {
+    if (!blob || blob.size === 0) {
       throw new Error(
         "The book file was empty."
       );
     }
 
     const downloadUrl =
-      URL.createObjectURL(
-        blob
-      );
+      URL.createObjectURL(blob);
 
     const link =
-      document.createElement(
-        "a"
-      );
+      document.createElement("a");
 
     link.href =
       downloadUrl;
@@ -312,23 +220,13 @@ async function downloadBook(
     link.download =
       `${bookTitle || "Santiano Book"}.pdf`;
 
-    document.body.appendChild(
-      link
-    );
+    document.body.appendChild(link);
 
     link.click();
 
     link.remove();
 
-    URL.revokeObjectURL(
-      downloadUrl
-    );
-
-    /* ==============================================
-       FIRST DOWNLOAD COMPLETED
-       
-       Change button to DOWNLOAD AGAIN
-    ============================================== */
+    URL.revokeObjectURL(downloadUrl);
 
     if (button) {
       button.textContent =
@@ -351,8 +249,7 @@ async function downloadBook(
 
   } finally {
     if (button) {
-      button.disabled =
-        false;
+      button.disabled = false;
 
       if (
         button.textContent ===
@@ -416,30 +313,23 @@ async function startRepurchase(
 
   try {
     if (button) {
-      button.disabled =
-        true;
-
+      button.disabled = true;
       button.textContent =
         "PREPARING PAYMENT...";
     }
-
-    /* ==============================================
-       CREATE NEW ORDER
-    ============================================== */
 
     const response =
       await fetch(
         `${API}/orders/draft`,
         {
-          method:
-            "POST",
+          method: "POST",
 
           headers: {
             "Content-Type":
               "application/json",
 
             Authorization:
-              `Bearer ${token}`,
+              `Bearer ${token}`
           },
 
           body:
@@ -447,57 +337,43 @@ async function startRepurchase(
               items: [
                 {
                   book_id:
-                    Number(
-                      bookId
-                    ),
+                    Number(bookId),
 
                   quantity:
-                    1,
-                },
-              ],
-            }),
+                    1
+                }
+              ]
+            })
         }
       );
 
     const data =
       await response.json();
 
-    if (
-      !response.ok
-    ) {
+    if (!response.ok) {
       throw new Error(
         data.error ||
         "Unable to create your new order."
       );
     }
 
-    if (
-      !data.order
-    ) {
+    if (!data.order) {
       throw new Error(
         "The server did not return an order."
       );
     }
 
     const orderId =
-      Number(
-        data.order.id
-      );
+      Number(data.order.id);
 
     if (
-      !Number.isInteger(
-        orderId
-      ) ||
+      !Number.isInteger(orderId) ||
       orderId <= 0
     ) {
       throw new Error(
         "The server returned an invalid order ID."
       );
     }
-
-    /* ==============================================
-       SAVE ORIGINAL CART
-    ============================================== */
 
     const originalCart =
       JSON.parse(
@@ -509,24 +385,16 @@ async function startRepurchase(
     localStorage.setItem(
       "santianoRepurchaseOriginalCart",
       JSON.stringify(
-        Array.isArray(
-          originalCart
-        )
+        Array.isArray(originalCart)
           ? originalCart
           : []
       )
     );
 
-    /* ==============================================
-       TEMPORARY CHECKOUT CART
-    ============================================== */
-
     const temporaryCart = [
       {
         id:
-          Number(
-            bookId
-          ),
+          Number(bookId),
 
         title:
           bookTitle,
@@ -554,8 +422,8 @@ async function startRepurchase(
           "",
 
         qty:
-          1,
-      },
+          1
+      }
     ];
 
     localStorage.setItem(
@@ -564,10 +432,6 @@ async function startRepurchase(
         temporaryCart
       )
     );
-
-    /* ==============================================
-       SAVE PENDING ORDER
-    ============================================== */
 
     const pendingOrder = {
       ...data.order,
@@ -585,7 +449,7 @@ async function startRepurchase(
         String(
           data.order.currency ||
           "NGN"
-        ).toUpperCase(),
+        ).toUpperCase()
     };
 
     localStorage.setItem(
@@ -595,18 +459,10 @@ async function startRepurchase(
       )
     );
 
-    /* ==============================================
-       MARK REPURCHASE
-    ============================================== */
-
     localStorage.setItem(
       "santianoRepurchase",
       "1"
     );
-
-    /* ==============================================
-       GO TO CHECKOUT
-    ============================================== */
 
     window.location.href =
       "checkout.html";
@@ -643,9 +499,7 @@ function handleLibraryAction(
   hasDownloaded,
   bookData
 ) {
-  if (
-    hasDownloaded
-  ) {
+  if (hasDownloaded) {
     confirmRepurchase(
       bookId,
       bookTitle,
@@ -666,26 +520,11 @@ function handleLibraryAction(
    BOOK CARD
 ===================================================== */
 
-function libraryBookCard(
-  book
-) {
+function libraryBookCard(book) {
   const cover =
     coverUrl(
       book.cover_key
     );
-
-  /*
-    IMPORTANT:
-
-    downloaded_at controls
-    the button state.
-
-    NULL:
-      DOWNLOAD
-
-    Has value:
-      DOWNLOAD AGAIN
-  */
 
   const hasDownloaded =
     Boolean(
@@ -720,7 +559,7 @@ function libraryBookCard(
 
         cover_key:
           book.cover_key ||
-          "",
+          ""
       })
     );
 
@@ -741,10 +580,7 @@ function libraryBookCard(
           cover
             ? `
               <img
-                src="${escapeHTML(
-                  cover
-                )}"
-
+                src="${escapeHTML(cover)}"
                 alt="${escapeHTML(
                   book.title
                 )} cover"
@@ -818,14 +654,9 @@ function libraryBookCard(
 
           onclick="
             handleLibraryAction(
-              ${Number(
-                book.id
-              )},
-
+              ${Number(book.id)},
               '${safeTitle}',
-
               ${hasDownloaded},
-
               JSON.parse(
                 decodeURIComponent(
                   '${bookData}'
@@ -859,10 +690,7 @@ async function loadLibrary() {
       "[data-library-grid]"
     );
 
-  if (
-    !message ||
-    !grid
-  ) {
+  if (!message || !grid) {
     return;
   }
 
@@ -882,13 +710,12 @@ async function loadLibrary() {
       await fetch(
         `${API}/library`,
         {
-          method:
-            "GET",
+          method: "GET",
 
           headers: {
             Authorization:
-              `Bearer ${token}`,
-          },
+              `Bearer ${token}`
+          }
         }
       );
 
@@ -896,10 +723,8 @@ async function loadLibrary() {
       await response.json();
 
     if (
-      response.status ===
-        401 ||
-      response.status ===
-        403
+      response.status === 401 ||
+      response.status === 403
     ) {
       localStorage.removeItem(
         "santianoToken"
@@ -910,12 +735,11 @@ async function loadLibrary() {
       );
 
       redirectToLogin();
+
       return;
     }
 
-    if (
-      !response.ok
-    ) {
+    if (!response.ok) {
       throw new Error(
         data.error ||
         "Unable to load your library."
@@ -930,8 +754,7 @@ async function loadLibrary() {
         : [];
 
     if (
-      libraryBooks.length ===
-      0
+      libraryBooks.length === 0
     ) {
       message.innerHTML = `
         You haven't purchased any books yet.
@@ -955,8 +778,7 @@ async function loadLibrary() {
 
     message.textContent =
       `${libraryBooks.length} book${
-        libraryBooks.length ===
-        1
+        libraryBooks.length === 1
           ? ""
           : "s"
       } in your library.`;
@@ -1039,6 +861,7 @@ function setupLogout() {
 document.addEventListener(
   "DOMContentLoaded",
   () => {
+
     const user =
       getUser();
 

@@ -55,13 +55,23 @@ function coverUrl(coverKey) {
     return cleanKey;
   }
 
+  /*
+    Database keys are now stored like:
+
+    covers/example.jpg
+
+    Supabase public covers bucket:
+    https://zzgjyznobxsfktcaaple.supabase.co/storage/v1/object/public/covers/example.jpg
+  */
+
   cleanKey = cleanKey
     .replace(/^\/+/, "")
-    .replace(/^api\/files\//, "")
-    .replace(/^uploads\//, "")
+    .replace(/^api\/files\/covers\//, "")
+    .replace(/^uploads\/covers\//, "")
+    .replace(/^covers\//, "")
     .replace(/\\/g, "/");
 
-  return `${apiUrl("files")}/${cleanKey
+  return `https://zzgjyznobxsfktcaaple.supabase.co/storage/v1/object/public/covers/${cleanKey
     .split("/")
     .map(encodeURIComponent)
     .join("/")}`;
@@ -76,7 +86,6 @@ function getAuthToken() {
   return localStorage.getItem("santianoToken");
 }
 
-
 function getCurrentUser() {
   try {
     return JSON.parse(
@@ -87,11 +96,9 @@ function getCurrentUser() {
   }
 }
 
-
 function isLoggedIn() {
   return Boolean(getAuthToken());
 }
-
 
 function logout() {
   localStorage.removeItem("santianoToken");
@@ -119,7 +126,6 @@ function getCartKey() {
   return "santianoCart_guest";
 }
 
-
 function getCart() {
   try {
     const cart = JSON.parse(
@@ -131,7 +137,6 @@ function getCart() {
     return [];
   }
 }
-
 
 function setCart(cart) {
   localStorage.setItem(
@@ -190,13 +195,11 @@ function addToCart(id) {
       author: book.author,
       description: book.description,
       category: book.category,
-
       price_kobo: Number(
         book.price_kobo ??
         book.price_cents ??
         0
       ),
-
       cover_key: book.cover_key,
       qty: 1
     });
@@ -258,12 +261,10 @@ async function startCheckout() {
       apiUrl("orders/draft"),
       {
         method: "POST",
-
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-
         body: JSON.stringify({
           items
         })
@@ -364,7 +365,6 @@ async function repurchaseBook(bookId) {
   }
 
   try {
-
     /* Find book */
 
     const book =
@@ -766,7 +766,6 @@ function filterBooks(category) {
       );
     });
 
-
   if (resultCount) {
     resultCount.textContent =
       `${filteredBooks.length} book${
@@ -776,15 +775,12 @@ function filterBooks(category) {
       } found`;
   }
 
-
   if (!filteredBooks.length) {
-
     grid.innerHTML = `
       <div
         class="muted"
         style="padding: 30px 0"
       >
-
         <h3>
           No books found
         </h3>
@@ -794,13 +790,11 @@ function filterBooks(category) {
           or choose a different
           category.
         </p>
-
       </div>
     `;
 
     return;
   }
-
 
   grid.innerHTML =
     filteredBooks
@@ -845,7 +839,6 @@ function setupCategories() {
           filterBooks(
             category
           );
-
         }
       );
 
@@ -859,7 +852,6 @@ function setupCategories() {
 ========================= */
 
 function setupBookSearch() {
-
   const searchInput =
     document.querySelector(
       "#book-search"
@@ -872,7 +864,6 @@ function setupBookSearch() {
 
   if (!searchInput) return;
 
-
   searchInput.addEventListener(
     "input",
     event => {
@@ -881,26 +872,21 @@ function setupBookSearch() {
         event.target.value;
 
       if (clearButton) {
-
         clearButton.classList.toggle(
           "visible",
           Boolean(
             searchTerm.trim()
           )
         );
-
       }
 
       filterBooks(
         activeCategory
       );
-
     }
   );
 
-
   if (clearButton) {
-
     clearButton.addEventListener(
       "click",
       () => {
@@ -918,10 +904,8 @@ function setupBookSearch() {
         );
 
         searchInput.focus();
-
       }
     );
-
   }
 }
 
@@ -931,7 +915,6 @@ function setupBookSearch() {
 ========================= */
 
 function renderBooks() {
-
   const grid =
     document.querySelector(
       "[data-books-grid]"
@@ -950,7 +933,6 @@ function renderBooks() {
 ========================= */
 
 function renderCart() {
-
   const box =
     document.querySelector(
       "[data-cart]"
@@ -961,12 +943,9 @@ function renderCart() {
   const cart =
     getCart();
 
-
   if (!cart.length) {
-
     box.innerHTML = `
       <p class="muted">
-
         Your cart is empty.
 
         <a
@@ -978,16 +957,13 @@ function renderCart() {
         >
           Explore books →
         </a>
-
       </p>
     `;
 
     return;
   }
 
-
   let total = 0;
-
 
   const cartItems =
     cart
@@ -1008,12 +984,10 @@ function renderCart() {
         total +=
           price * quantity;
 
-
         const cover =
           coverUrl(
             item.cover_key
           );
-
 
         return `
           <div class="cart-row">
@@ -1041,7 +1015,6 @@ function renderCart() {
 
             </div>
 
-
             <div>
 
               <b>
@@ -1059,13 +1032,11 @@ function renderCart() {
 
             </div>
 
-
             <div>
               ${money(price)}
               ×
               ${quantity}
             </div>
-
 
             <button
               type="button"
@@ -1080,10 +1051,8 @@ function renderCart() {
 
           </div>
         `;
-
       })
       .join("");
-
 
   box.innerHTML = `
     ${cartItems}
@@ -1118,7 +1087,6 @@ function renderCart() {
 ===================================================== */
 
 function renderBook() {
-
   const element =
     document.querySelector(
       "[data-book-detail]"
@@ -1131,7 +1099,6 @@ function renderBook() {
     return;
   }
 
-
   const id =
     Number(
       new URLSearchParams(
@@ -1140,7 +1107,6 @@ function renderBook() {
     ) ||
     Number(books[0].id);
 
-
   const book =
     books.find(
       item =>
@@ -1148,12 +1114,10 @@ function renderBook() {
     ) ||
     books[0];
 
-
   const cover =
     coverUrl(
       book.cover_key
     );
-
 
   const price =
     Number(
@@ -1162,9 +1126,7 @@ function renderBook() {
       0
     );
 
-
   element.innerHTML = `
-
     <div class="book-detail-card">
 
       <!-- BOOK COVER -->
@@ -1226,13 +1188,11 @@ function renderBook() {
           Digital eBook
         </div>
 
-
         <h1>
           ${escapeHtml(
             book.title
           )}
         </h1>
-
 
         <p class="book-detail-author">
 
@@ -1247,7 +1207,6 @@ function renderBook() {
 
         </p>
 
-
         <div class="category">
           ${escapeHtml(
             book.category ||
@@ -1255,21 +1214,16 @@ function renderBook() {
           )}
         </div>
 
-
         <div class="book-detail-price">
           ${money(price)}
         </div>
 
-
         <p class="book-detail-description">
-
           ${escapeHtml(
             book.description ||
             "No description available."
           )}
-
         </p>
-
 
         <ul>
 
@@ -1293,7 +1247,6 @@ function renderBook() {
 
         </ul>
 
-
         <div class="detail-actions">
 
           <button
@@ -1306,7 +1259,6 @@ function renderBook() {
           >
             BUY NOW
           </button>
-
 
           <button
             class="outline-btn book-detail-button"
@@ -1332,7 +1284,6 @@ function renderBook() {
 ========================= */
 
 function escapeHtml(value) {
-
   return String(value ?? "").replace(
     /[&<>"']/g,
     character =>
@@ -1356,13 +1307,9 @@ document.addEventListener(
   () => {
 
     updateCartCount();
-
     renderCart();
-
     setupCategories();
-
     setupBookSearch();
-
     loadBooks();
 
   }

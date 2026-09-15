@@ -1,6 +1,4 @@
 const express = require("express");
-const path = require("path");
-const fs = require("fs");
 
 const router = express.Router();
 
@@ -10,43 +8,8 @@ const requireAuth =
 const pool =
   require("../db/pool");
 
-
-/* =====================================================
-   SAFE BOOK FILE PATH
-===================================================== */
-
-function getBookFilePath(fileKey) {
-  if (!fileKey) {
-    return null;
-  }
-
-  const serverRoot =
-    path.resolve(
-      __dirname,
-      ".."
-    );
-
-  const filePath =
-    path.resolve(
-      serverRoot,
-      fileKey
-    );
-
-  /*
-    Prevent path traversal.
-  */
-
-  if (
-    filePath !== serverRoot &&
-    !filePath.startsWith(
-      serverRoot + path.sep
-    )
-  ) {
-    return null;
-  }
-
-  return filePath;
-}
+const supabase =
+  require("../supabase/client");
 
 
 /* =====================================================
@@ -113,6 +76,22 @@ router.get(
 /* =====================================================
    DOWNLOAD BOOK
    GET /api/library/:bookId/download
+
+   Flow:
+
+   Vercel
+      ↓
+   Render API
+      ↓
+   Check logged-in user
+      ↓
+   Check book ownership
+      ↓
+   Create temporary signed URL
+      ↓
+   Supabase private ebooks bucket
+      ↓
+   PDF download
 ===================================================== */
 
 router.get(
@@ -136,6 +115,7 @@ router.get(
             "Invalid book ID",
         });
       }
+
 
       /* ==============================================
          CONFIRM OWNERSHIP
@@ -170,6 +150,7 @@ router.get(
           ]
         );
 
+
       if (
         result.rows.length === 0
       ) {
@@ -179,6 +160,7 @@ router.get(
         });
       }
 
+
       const libraryBook =
         result.rows[0];
 
@@ -186,6 +168,7 @@ router.get(
         file_key,
         title,
       } = libraryBook;
+
 
       /* ==============================================
          BOOK MUST HAVE A PDF
@@ -198,118 +181,100 @@ router.get(
         });
       }
 
-      /* ==============================================
-         RESOLVE SAFE PATH
-      ============================================== */
-
-      const filePath =
-        getBookFilePath(
-          file_key
-        );
-
-      if (!filePath) {
-        return res.status(400).json({
-          error:
-            "Invalid file path.",
-        });
-      }
 
       /* ==============================================
-         ACTUAL FILE MUST EXIST
+         CREATE TEMPORARY SIGNED URL
+         
+         The ebooks bucket is PRIVATE.
+
+         The service-role key stays on Render.
+         It is NEVER sent to the browser.
+         
+         The signed URL expires after 60 seconds.
       ============================================== */
+
+      const {
+        data,
+        error: signedUrlError,
+      } =
+        await supabase.storage
+          .from("ebooks")
+          .createSignedUrl(
+            file_key,
+            60
+          );
+
 
       if (
-        !fs.existsSync(
-          filePath
-        )
+        signedUrlError ||
+        !data?.signedUrl
       ) {
         console.error(
-          "Book file missing:",
-          filePath
+          "Supabase signed URL error:",
+          signedUrlError
         );
 
-        return res.status(404).json({
+        return res.status(500).json({
           error:
-            "Book file is temporarily unavailable.",
+            "Unable to prepare your book for download.",
         });
       }
 
+
       /* ==============================================
-         SEND PDF
+         RECORD FIRST SUCCESSFUL DOWNLOAD
          
-         IMPORTANT:
-         downloaded_at is NOT changed
-         until Express successfully finishes
-         sending the file.
+         NULL → NOW()
+
+         Existing timestamp stays unchanged.
       ============================================== */
 
-      res.download(
-        filePath,
+      try {
+        await pool.query(
+          `
+          UPDATE library
 
-        `${title || "Santiano Book"}.pdf`,
+          SET
+            downloaded_at =
+              COALESCE(
+                downloaded_at,
+                NOW()
+              )
 
-        async error => {
-          if (error) {
-            console.error(
-              "File download error:",
-              error
-            );
+          WHERE
+            user_id = $1
+            AND book_id = $2
+          `,
+          [
+            req.user.id,
+            bookId,
+          ]
+        );
 
-            if (
-              !res.headersSent
-            ) {
-              return res.status(500).json({
-                error:
-                  "Unable to download this book.",
-              });
-            }
+        console.log(
+          `Book download authorized: user=${req.user.id}, book=${bookId}`
+        );
 
-            return;
-          }
+      } catch (updateError) {
+        console.error(
+          "Unable to record book download:",
+          updateError
+        );
+      }
 
-          /* ==========================================
-             DOWNLOAD SUCCESSFUL
-             
-             First download:
-               NULL → NOW()
-             
-             Future downloads:
-               existing timestamp stays unchanged
-          ========================================== */
 
-          try {
-            await pool.query(
-              `
-              UPDATE library
+      /* ==============================================
+         SEND USER TO THE TEMPORARY SUPABASE URL
 
-              SET
-                downloaded_at =
-                  COALESCE(
-                    downloaded_at,
-                    NOW()
-                  )
+         Supabase handles the actual PDF transfer.
 
-              WHERE
-                user_id = $1
-                AND book_id = $2
-              `,
-              [
-                req.user.id,
-                bookId,
-              ]
-            );
+         Render does NOT have to load the PDF into
+         its own memory.
+      ============================================== */
 
-            console.log(
-              `Book downloaded successfully: user=${req.user.id}, book=${bookId}`
-            );
-
-          } catch (updateError) {
-            console.error(
-              "Unable to record book download:",
-              updateError
-            );
-          }
-        }
+      return res.redirect(
+        302,
+        data.signedUrl
       );
 
     } catch (error) {
@@ -321,7 +286,7 @@ router.get(
       if (
         !res.headersSent
       ) {
-        res.status(500).json({
+        return res.status(500).json({
           error:
             "Unable to download book.",
         });

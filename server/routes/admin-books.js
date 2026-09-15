@@ -1,52 +1,24 @@
 const express = require("express");
 const multer = require("multer");
-const path = require("path");
 const crypto = require("crypto");
 
 const pool = require("../db/pool");
+const supabase = require("../supabase/client");
 const { requireAdmin } = require("../middleware/admin");
 
 const router = express.Router();
 
 // =========================
-// FILE STORAGE
-// =========================
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const folder =
-      file.fieldname === "ebook" ? "ebooks" : "covers";
-
-    cb(
-      null,
-      path.join(__dirname, "..", "uploads", folder)
-    );
-  },
-
-  filename: (req, file, cb) => {
-    const extension = path
-      .extname(file.originalname)
-      .toLowerCase();
-
-    const filename =
-      Date.now() +
-      "-" +
-      crypto.randomBytes(8).toString("hex") +
-      extension;
-
-    cb(null, filename);
-  }
-});
-
-// =========================
 // MULTER
 // =========================
+// Files are kept temporarily in memory,
+// then uploaded directly to Supabase Storage.
 
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
 
   limits: {
-    fileSize: 50 * 1024 * 1024
+    fileSize: 200 * 1024 * 1024
   },
 
   fileFilter: (req, file, cb) => {
@@ -131,6 +103,9 @@ router.post(
     }
   ]),
   async (req, res, next) => {
+    let uploadedEbookKey = null;
+    let uploadedCoverKey = null;
+
     try {
       const {
         title,
@@ -185,25 +160,87 @@ router.post(
         .replace(/^-|-$/g, "");
 
       // =========================
-      // FILE PATH
+      // STORAGE FILE NAMES
       // =========================
 
-      const uploadsRoot = path.join(
-        __dirname,
-        ".."
-      );
+      const ebookExtension = ".pdf";
 
-      const relativePath = (filePath) => {
-        return path
-          .relative(uploadsRoot, filePath)
-          .replaceAll("\\", "/");
-      };
+      const ebookFilename =
+        Date.now() +
+        "-" +
+        crypto.randomBytes(8).toString("hex") +
+        ebookExtension;
 
-      const ebookKey = relativePath(ebook.path);
+      const ebookKey = `ebooks/${ebookFilename}`;
 
-      const coverKey = cover
-        ? relativePath(cover.path)
-        : null;
+      let coverKey = null;
+
+      if (cover) {
+        const originalExtension =
+          cover.originalname
+            .split(".")
+            .pop()
+            .toLowerCase();
+
+        const coverFilename =
+          Date.now() +
+          "-" +
+          crypto.randomBytes(8).toString("hex") +
+          "." +
+          originalExtension;
+
+        coverKey = `covers/${coverFilename}`;
+      }
+
+      // =========================
+      // UPLOAD EBOOK
+      // =========================
+
+      const ebookUpload =
+        await supabase.storage
+          .from("ebooks")
+          .upload(
+            ebookKey,
+            ebook.buffer,
+            {
+              contentType: "application/pdf",
+              upsert: false
+            }
+          );
+
+      if (ebookUpload.error) {
+        throw new Error(
+          `eBook upload failed: ${ebookUpload.error.message}`
+        );
+      }
+
+      uploadedEbookKey = ebookKey;
+
+      // =========================
+      // UPLOAD COVER
+      // =========================
+
+      if (cover && coverKey) {
+        const coverUpload =
+          await supabase.storage
+            .from("covers")
+            .upload(
+              coverKey,
+              cover.buffer,
+              {
+                contentType: cover.mimetype,
+                upsert: false
+              }
+            );
+
+        if (coverUpload.error) {
+          throw new Error(
+            `Cover upload failed: ${coverUpload.error.message}`
+          );
+        }
+
+        uploadedCoverKey = coverKey;
+      }
 
       // =========================
       // DATABASE
@@ -269,12 +306,39 @@ router.post(
         ]
       );
 
+      // =========================
+      // SUCCESS
+      // =========================
+
       res.status(201).json({
         message: "Book created successfully.",
         book: result.rows[0]
       });
 
     } catch (error) {
+
+      // =========================
+      // CLEANUP STORAGE
+      // =========================
+      // If the database insert or another
+      // operation fails after uploading,
+      // remove the uploaded files so we
+      // don't leave orphaned files.
+
+      if (uploadedEbookKey) {
+        await supabase.storage
+          .from("ebooks")
+          .remove([uploadedEbookKey])
+          .catch(() => {});
+      }
+
+      if (uploadedCoverKey) {
+        await supabase.storage
+          .from("covers")
+          .remove([uploadedCoverKey])
+          .catch(() => {});
+      }
+
       next(error);
     }
   }

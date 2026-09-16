@@ -1,7 +1,45 @@
 const express = require("express");
-
 const router = express.Router();
+
 const pool = require("../db/pool");
+const supabase = require("../supabase/client");
+
+/* =========================
+   CREATE COVER URL
+========================= */
+
+function getCoverUrl(coverKey) {
+  if (!coverKey) return null;
+
+  // Your old database records contain paths such as:
+  // uploads/covers/filename.jpg
+  // covers/filename.jpg
+  //
+  // We extract the filename because the new
+  // Supabase "covers" bucket will store files
+  // at its root.
+
+  const filename = coverKey
+    .replace(/^uploads\/covers\//, "")
+    .replace(/^covers\//, "");
+
+  const { data } = supabase.storage
+    .from("covers")
+    .getPublicUrl(filename);
+
+  return data?.publicUrl || null;
+}
+
+/* =========================
+   FORMAT BOOK
+========================= */
+
+function formatBook(book) {
+  return {
+    ...book,
+    cover_url: getCoverUrl(book.cover_key),
+  };
+}
 
 /* =========================
    GET ALL PUBLISHED BOOKS
@@ -28,8 +66,10 @@ router.get("/", async (req, res) => {
       ORDER BY created_at DESC
     `);
 
+    const books = result.rows.map(formatBook);
+
     res.json({
-      books: result.rows,
+      books,
     });
   } catch (error) {
     console.error("Books fetch error:", error);
@@ -84,7 +124,7 @@ router.get("/:id", async (req, res) => {
     }
 
     res.json({
-      book: result.rows[0],
+      book: formatBook(result.rows[0]),
     });
   } catch (error) {
     console.error("Single book fetch error:", error);

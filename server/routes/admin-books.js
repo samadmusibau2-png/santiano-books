@@ -11,8 +11,6 @@ const router = express.Router();
 // =========================
 // MULTER
 // =========================
-// Files are kept temporarily in memory,
-// then uploaded directly to Supabase Storage.
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -36,7 +34,8 @@ const upload = multer({
       ![
         "image/jpeg",
         "image/png",
-        "image/webp"
+        "image/webp",
+        "image/jpg"
       ].includes(file.mimetype)
     ) {
       return cb(
@@ -92,6 +91,7 @@ router.get("/books", async (req, res, next) => {
 
 router.post(
   "/books",
+
   upload.fields([
     {
       name: "ebook",
@@ -102,6 +102,7 @@ router.post(
       maxCount: 1
     }
   ]),
+
   async (req, res, next) => {
     let uploadedEbookKey = null;
     let uploadedCoverKey = null;
@@ -163,15 +164,13 @@ router.post(
       // STORAGE FILE NAMES
       // =========================
 
-      const ebookExtension = ".pdf";
-
       const ebookFilename =
         Date.now() +
         "-" +
         crypto.randomBytes(8).toString("hex") +
-        ebookExtension;
+        ".pdf";
 
-      const ebookKey = `ebooks/${ebookFilename}`;
+      const ebookKey = ebookFilename;
 
       let coverKey = null;
 
@@ -189,7 +188,7 @@ router.post(
           "." +
           originalExtension;
 
-        coverKey = `covers/${coverFilename}`;
+        coverKey = coverFilename;
       }
 
       // =========================
@@ -317,13 +316,14 @@ router.post(
 
     } catch (error) {
 
+      console.error(
+        "Create book error:",
+        error
+      );
+
       // =========================
-      // CLEANUP STORAGE
+      // CLEANUP EBOOK
       // =========================
-      // If the database insert or another
-      // operation fails after uploading,
-      // remove the uploaded files so we
-      // don't leave orphaned files.
 
       if (uploadedEbookKey) {
         await supabase.storage
@@ -331,6 +331,10 @@ router.post(
           .remove([uploadedEbookKey])
           .catch(() => {});
       }
+
+      // =========================
+      // CLEANUP COVER
+      // =========================
 
       if (uploadedCoverKey) {
         await supabase.storage
@@ -384,8 +388,6 @@ router.patch(
 // =========================
 // REMOVE BOOK
 // =========================
-// Soft delete: keeps orders and
-// purchased library records safe.
 
 router.delete(
   "/books/:id",

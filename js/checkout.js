@@ -7,15 +7,21 @@ const CHECKOUT_API =
   "https://santiano-books.onrender.com/api";
 
 /*
-   Paystack TEST public key.
+   Paystack public key.
 
-   Replace this with your own pk_test_... key.
-
-   IMPORTANT:
-   Never put sk_test_... or sk_live_... here.
+   Public keys are safe to use in frontend code.
+   NEVER put a Paystack secret key here.
 */
 const PAYSTACK_PUBLIC_KEY =
   "pk_live_87c9da8d951f26772deb4bdfa3c3f2d832b9de25";
+
+
+/* =====================================================
+   SUPABASE COVER STORAGE
+===================================================== */
+
+const SUPABASE_COVERS =
+  "https://zzgjyznobxsfktcaaple.supabase.co/storage/v1/object/public/covers";
 
 
 /* =====================================================
@@ -184,20 +190,43 @@ function getCoverUrl(coverKey) {
     return "";
   }
 
-  const cleanKey = String(coverKey)
-    .replace(
-      /^uploads[\\/]+/,
-      ""
-    )
-    .replace(
-      /[\\]+/g,
-      "/"
-    );
+  let cleanKey = String(coverKey)
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "");
 
-  return `${CHECKOUT_API}/files/${cleanKey
-    .split("/")
-    .map(encodeURIComponent)
-    .join("/")}`;
+  /*
+     Remove old storage prefixes.
+  */
+
+  cleanKey = cleanKey
+    .replace(/^uploads\/covers\//i, "")
+    .replace(/^uploads\//i, "")
+    .replace(/^covers\//i, "");
+
+  /*
+     If the database somehow contains
+     a complete Supabase URL, use it.
+  */
+
+  if (
+    cleanKey.startsWith("http://") ||
+    cleanKey.startsWith("https://")
+  ) {
+    return cleanKey;
+  }
+
+  /*
+     Supabase public covers bucket.
+  */
+
+  return (
+    SUPABASE_COVERS +
+    "/" +
+    cleanKey
+      .split("/")
+      .map(encodeURIComponent)
+      .join("/")
+  );
 }
 
 
@@ -210,8 +239,8 @@ function clearCheckout() {
     getCheckoutCartKey();
 
   /*
-    REPURCHASE:
-    Restore the customer's original cart.
+     REPURCHASE:
+     Restore the customer's original cart.
   */
 
   if (isRepurchase()) {
@@ -238,8 +267,8 @@ function clearCheckout() {
   } else {
 
     /*
-      NORMAL CHECKOUT:
-      Remove the normal cart.
+       NORMAL CHECKOUT:
+       Remove the normal cart.
     */
 
     localStorage.removeItem(
@@ -703,12 +732,13 @@ async function beginPayment() {
 
     if (
       !PAYSTACK_PUBLIC_KEY ||
-      !PAYSTACK_PUBLIC_KEY.startsWith(
-        "pk_test_"
+      (
+        !PAYSTACK_PUBLIC_KEY.startsWith("pk_test_") &&
+        !PAYSTACK_PUBLIC_KEY.startsWith("pk_live_")
       )
     ) {
       throw new Error(
-        "Paystack test public key is not configured correctly."
+        "Paystack public key is not configured correctly."
       );
     }
 
@@ -740,8 +770,15 @@ async function beginPayment() {
       );
 
 
-    const data =
-      await response.json();
+    let data;
+
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      throw new Error(
+        "The payment server returned an invalid response."
+      );
+    }
 
 
     console.log(
@@ -835,7 +872,8 @@ async function beginPayment() {
 
 
     message.textContent =
-      error.message;
+      error.message ||
+      "Unable to initialize payment.";
 
 
     button.disabled = false;
@@ -902,6 +940,10 @@ async function verifyPayment(
 
   try {
 
+    /* ==============================================
+       VERIFY PAYMENT THROUGH BACKEND
+    ============================================== */
+
     const response =
       await fetch(
         `${CHECKOUT_API}/orders/paystack/verify`,
@@ -924,8 +966,15 @@ async function verifyPayment(
       );
 
 
-    const data =
-      await response.json();
+    let data;
+
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      throw new Error(
+        "The payment server returned an invalid response."
+      );
+    }
 
 
     console.log(
@@ -958,11 +1007,9 @@ async function verifyPayment(
 
 
     /*
-      IMPORTANT:
-
-      Only clear checkout after the
-      backend has successfully verified
-      the payment and updated the library.
+       Only clear checkout after the
+       backend has successfully verified
+       the payment.
     */
 
     clearCheckout();
@@ -986,7 +1033,8 @@ async function verifyPayment(
 
 
     message.textContent =
-      error.message;
+      error.message ||
+      "Payment verification failed.";
 
 
     button.disabled = false;

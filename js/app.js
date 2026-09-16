@@ -25,6 +25,14 @@ let searchTerm = "";
 
 
 /* =========================
+   SUPABASE COVER STORAGE
+========================= */
+
+const SUPABASE_COVERS =
+  "https://zzgjyznobxsfktcaaple.supabase.co/storage/v1/object/public/covers";
+
+
+/* =========================
    MONEY — NGN / KOBO
 ========================= */
 
@@ -47,31 +55,34 @@ function coverUrl(coverKey) {
 
   let cleanKey = String(coverKey).trim();
 
-  // Already a complete URL
-  if (
-    cleanKey.startsWith("http://") ||
-    cleanKey.startsWith("https://")
-  ) {
+  /* Already a complete URL */
+  if (/^https?:\/\//i.test(cleanKey)) {
     return cleanKey;
   }
 
   /*
-    Database keys are now stored like:
+    Database keys may look like:
 
     covers/example.jpg
 
-    Supabase public covers bucket:
+    uploads/covers/example.jpg
+
+    api/files/covers/example.jpg
+
+    Supabase public URL:
+
     https://zzgjyznobxsfktcaaple.supabase.co/storage/v1/object/public/covers/example.jpg
   */
 
   cleanKey = cleanKey
     .replace(/^\/+/, "")
-    .replace(/^api\/files\/covers\//, "")
-    .replace(/^uploads\/covers\//, "")
-    .replace(/^covers\//, "")
+    .replace(/^api\/+files\/covers\//i, "")
+    .replace(/^api\/+files\//i, "")
+    .replace(/^uploads\/covers\//i, "")
+    .replace(/^covers\//i, "")
     .replace(/\\/g, "/");
 
-  return `https://zzgjyznobxsfktcaaple.supabase.co/storage/v1/object/public/covers/${cleanKey
+  return `${SUPABASE_COVERS}/${cleanKey
     .split("/")
     .map(encodeURIComponent)
     .join("/")}`;
@@ -86,6 +97,7 @@ function getAuthToken() {
   return localStorage.getItem("santianoToken");
 }
 
+
 function getCurrentUser() {
   try {
     return JSON.parse(
@@ -96,9 +108,11 @@ function getCurrentUser() {
   }
 }
 
+
 function isLoggedIn() {
   return Boolean(getAuthToken());
 }
+
 
 function logout() {
   localStorage.removeItem("santianoToken");
@@ -126,6 +140,7 @@ function getCartKey() {
   return "santianoCart_guest";
 }
 
+
 function getCart() {
   try {
     const cart = JSON.parse(
@@ -137,6 +152,7 @@ function getCart() {
     return [];
   }
 }
+
 
 function setCart(cart) {
   localStorage.setItem(
@@ -365,6 +381,7 @@ async function repurchaseBook(bookId) {
   }
 
   try {
+
     /* Find book */
 
     const book =

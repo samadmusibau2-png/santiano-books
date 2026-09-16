@@ -1,3 +1,5 @@
+// routes/library.js
+
 const express = require("express");
 
 const router = express.Router();
@@ -76,22 +78,6 @@ router.get(
 /* =====================================================
    DOWNLOAD BOOK
    GET /api/library/:bookId/download
-
-   Flow:
-
-   Vercel
-      ↓
-   Render API
-      ↓
-   Check logged-in user
-      ↓
-   Check book ownership
-      ↓
-   Create temporary signed URL
-      ↓
-   Supabase private ebooks bucket
-      ↓
-   PDF download
 ===================================================== */
 
 router.get(
@@ -183,14 +169,14 @@ router.get(
 
 
       /* ==============================================
-         CREATE TEMPORARY SIGNED URL
+         CREATE SIGNED URL
          
-         The ebooks bucket is PRIVATE.
+         SUPABASE BUCKET:
+         ebooks
+
+         BUCKET MUST REMAIN PRIVATE.
 
          The service-role key stays on Render.
-         It is NEVER sent to the browser.
-         
-         The signed URL expires after 60 seconds.
       ============================================== */
 
       const {
@@ -201,7 +187,7 @@ router.get(
           .from("ebooks")
           .createSignedUrl(
             file_key,
-            60
+            300
           );
 
 
@@ -222,11 +208,7 @@ router.get(
 
 
       /* ==============================================
-         RECORD FIRST SUCCESSFUL DOWNLOAD
-         
-         NULL → NOW()
-
-         Existing timestamp stays unchanged.
+         RECORD DOWNLOAD
       ============================================== */
 
       try {
@@ -264,12 +246,7 @@ router.get(
 
 
       /* ==============================================
-         SEND USER TO THE TEMPORARY SUPABASE URL
-
-         Supabase handles the actual PDF transfer.
-
-         Render does NOT have to load the PDF into
-         its own memory.
+         REDIRECT TO TEMPORARY SIGNED URL
       ============================================== */
 
       return res.redirect(

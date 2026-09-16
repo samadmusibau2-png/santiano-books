@@ -1,10 +1,11 @@
+// routes/orders.js
+
 const express = require("express");
-const path = require("path");
-const fs = require("fs");
 
 const router = express.Router();
 
 const db = require("../db/pool");
+const supabase = require("../supabase/client");
 const requireAuth = require("../middleware/auth");
 
 /* =====================================================
@@ -47,68 +48,48 @@ async function paystackRequest(endpoint, options = {}) {
 
 
 /* =====================================================
-   SAFE BOOK FILE PATH
+   CHECK BOOK PDF IN SUPABASE STORAGE
 ===================================================== */
 
-function getBookFilePath(fileKey) {
-  if (!fileKey) {
-    return null;
-  }
-
-  const serverRoot =
-    path.resolve(__dirname, "..");
-
-  const filePath =
-    path.resolve(
-      serverRoot,
-      fileKey
-    );
-
-  /*
-    Prevent a file_key such as:
-    ../../something
-    from escaping the server directory.
-  */
-
-  if (
-    filePath !== serverRoot &&
-    !filePath.startsWith(
-      serverRoot + path.sep
-    )
-  ) {
-    return null;
-  }
-
-  return filePath;
-}
-
-
-/* =====================================================
-   CHECK BOOK PDF
-===================================================== */
-
-function ensureBookFileExists(book) {
+async function ensureBookFileExists(book) {
   if (!book.file_key) {
     throw new Error(
       `The PDF for "${book.title}" is not available.`
     );
   }
 
-  const filePath =
-    getBookFilePath(
-      book.file_key
+  const {
+    data,
+    error
+  } = await supabase.storage
+    .from("ebooks")
+    .list("", {
+      search: book.file_key,
+      limit: 100
+    });
+
+  if (error) {
+    console.error(
+      "Supabase ebook check error:",
+      error
     );
 
-  if (
-    !filePath ||
-    !fs.existsSync(filePath)
-  ) {
     throw new Error(
-      `The PDF for "${book.title}" is temporarily unavailable.`
+      `Unable to check the PDF for "${book.title}".`
     );
   }
 
-  return filePath;
+  const exists = data?.some(
+    file => file.name === book.file_key
+  );
+
+  if (!exists) {
+    throw new Error(
+      `The PDF for "${book.title}" is not available in Supabase Storage.`
+    );
+  }
+
+  return true;
 }
 
 
@@ -241,10 +222,6 @@ router.post(
 
       const orderItems = [];
 
-      /* ================================================
-         VALIDATE EVERY BOOK
-      ================================================ */
-
       for (const item of items) {
         const bookId =
           Number(
@@ -308,10 +285,6 @@ router.post(
         const book =
           bookResult.rows[0];
 
-        /* ==============================================
-           BOOK MUST BE PUBLISHED
-        ============================================== */
-
         if (
           !book.is_published
         ) {
@@ -320,17 +293,9 @@ router.post(
           );
         }
 
-        /* ==============================================
-           PDF MUST EXIST BEFORE ORDER CREATION
-        ============================================== */
-
-        ensureBookFileExists(
+        await ensureBookFileExists(
           book
         );
-
-        /* ==============================================
-           VALIDATE DATABASE PRICE
-        ============================================== */
 
         const unitPriceKobo =
           Number(
@@ -365,10 +330,6 @@ router.post(
         });
       }
 
-      /* ==============================================
-         VALIDATE TOTAL
-      ============================================== */
-
       if (
         !Number.isInteger(
           totalKobo
@@ -379,10 +340,6 @@ router.post(
           "The order total must be greater than zero."
         );
       }
-
-      /* ==============================================
-         CREATE ORDER
-      ============================================== */
 
       const orderResult =
         await client.query(
@@ -416,10 +373,6 @@ router.post(
 
       const order =
         orderResult.rows[0];
-
-      /* ==============================================
-         SAVE ORDER ITEMS
-      ============================================== */
 
       for (
         const item of orderItems
@@ -529,10 +482,6 @@ router.post(
         });
       }
 
-      /* ==============================================
-         GET ORDER
-      ============================================== */
-
       const orderResult =
         await db.query(
           `
@@ -561,10 +510,6 @@ router.post(
       const order =
         orderResult.rows[0];
 
-      /* ==============================================
-         VERIFY OWNER
-      ============================================== */
-
       if (
         Number(
           order.user_id
@@ -578,10 +523,6 @@ router.post(
             "You cannot pay for this order.",
         });
       }
-
-      /* ==============================================
-         ORDER MUST STILL BE PENDING
-      ============================================== */
 
       if (
         order.status !==
@@ -620,10 +561,6 @@ router.post(
         });
       }
 
-      /* ==============================================
-         CUSTOMER EMAIL
-      ============================================== */
-
       const email =
         req.user.email;
 
@@ -633,11 +570,6 @@ router.post(
             "Customer email is required.",
         });
       }
-
-      /* ==============================================
-         VERIFY ALL BOOK FILES AGAIN
-         BEFORE PAYSTACK PAYMENT
-      ============================================== */
 
       const itemsResult =
         await db.query(
@@ -679,7 +611,7 @@ router.post(
         }
 
         try {
-          ensureBookFileExists(
+          await ensureBookFileExists(
             item
           );
         } catch (error) {
@@ -690,16 +622,8 @@ router.post(
         }
       }
 
-      /* ==============================================
-         CREATE PAYSTACK REFERENCE
-      ============================================== */
-
       const reference =
         `SANTIANO-${order.id}-${Date.now()}`;
-
-      /* ==============================================
-         INITIALIZE PAYSTACK
-      ============================================== */
 
       const payment =
         await paystackRequest(
@@ -791,10 +715,6 @@ router.post(
         });
       }
 
-      /* ==============================================
-         VERIFY TRANSACTION WITH PAYSTACK
-      ============================================== */
-
       const payment =
         await paystackRequest(
           `/transaction/verify/${encodeURIComponent(
@@ -809,10 +729,6 @@ router.post(
       const transaction =
         payment.data;
 
-      /* ==============================================
-         PAYMENT MUST BE SUCCESSFUL
-      ============================================== */
-
       if (
         transaction.status !==
           "success" ||
@@ -824,10 +740,6 @@ router.post(
             "Payment was not successful.",
         });
       }
-
-      /* ==============================================
-         GET ORDER ID FROM PAYSTACK METADATA
-      ============================================== */
 
       const orderId =
         Number(
@@ -851,10 +763,6 @@ router.post(
       await client.query(
         "BEGIN"
       );
-
-      /* ==============================================
-         LOCK ORDER
-      ============================================== */
 
       const orderResult =
         await client.query(
@@ -883,10 +791,6 @@ router.post(
       const order =
         orderResult.rows[0];
 
-      /* ==============================================
-         VERIFY CUSTOMER
-      ============================================== */
-
       if (
         Number(
           order.user_id
@@ -900,10 +804,6 @@ router.post(
         );
       }
 
-      /* ==============================================
-         VERIFY CURRENCY
-      ============================================== */
-
       if (
         order.currency !==
         "NGN"
@@ -912,10 +812,6 @@ router.post(
           "This order does not use NGN."
         );
       }
-
-      /* ==============================================
-         VERIFY PAYMENT AMOUNT
-      ============================================== */
 
       if (
         Number(
@@ -929,10 +825,6 @@ router.post(
           "Payment amount does not match the order total."
         );
       }
-
-      /* ==============================================
-         VERIFY PAYSTACK USER METADATA
-      ============================================== */
 
       const metadataUserId =
         Number(
@@ -951,10 +843,6 @@ router.post(
           "Payment customer does not match the order."
         );
       }
-
-      /* ==============================================
-         GET BOOKS IN ORDER
-      ============================================== */
 
       const itemsResult =
         await client.query(
@@ -981,10 +869,6 @@ router.post(
         );
       }
 
-      /* ==============================================
-         VERIFY BOOKS ARE STILL AVAILABLE
-      ============================================== */
-
       for (
         const item of itemsResult.rows
       ) {
@@ -996,23 +880,10 @@ router.post(
           );
         }
 
-        ensureBookFileExists(
+        await ensureBookFileExists(
           item
         );
       }
-
-      /* ==============================================
-         ADD / UPDATE LIBRARY
-         
-         FIRST PURCHASE:
-           downloaded_at = NULL
-         
-         REPURCHASE:
-           downloaded_at = NULL again
-         
-         This creates:
-           PAYMENT → DOWNLOAD
-      ============================================== */
 
       for (
         const item of itemsResult.rows
@@ -1054,10 +925,6 @@ router.post(
           ]
         );
       }
-
-      /* ==============================================
-         MARK ORDER PAID
-      ============================================== */
 
       await client.query(
         `

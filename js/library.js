@@ -5,7 +5,7 @@
 const API =
   window.SANTIANO_API ||
   "https://santiano-books.onrender.com/api";
-
+  
 const SUPABASE_COVERS_URL =
   "https://zzgjyznobxsfktcaaple.supabase.co/storage/v1/object/public/covers";
 

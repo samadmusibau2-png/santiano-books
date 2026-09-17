@@ -169,14 +169,15 @@ router.get(
 
 
       /* ==============================================
-         CREATE SIGNED URL
-         
+         CREATE TEMPORARY SIGNED URL
+
          SUPABASE BUCKET:
          ebooks
 
-         BUCKET MUST REMAIN PRIVATE.
+         BUCKET REMAINS PRIVATE.
 
-         The service-role key stays on Render.
+         URL LIFETIME:
+         5 MINUTES
       ============================================== */
 
       const {
@@ -246,13 +247,15 @@ router.get(
 
 
       /* ==============================================
-         REDIRECT TO TEMPORARY SIGNED URL
+         RETURN TEMPORARY DOWNLOAD LINK
       ============================================== */
 
-      return res.redirect(
-        302,
-        data.signedUrl
-      );
+      return res.json({
+        success: true,
+        title: title,
+        expires_in: 300,
+        download_url: data.signedUrl
+      });
 
     } catch (error) {
       console.error(
@@ -260,9 +263,7 @@ router.get(
         error
       );
 
-      if (
-        !res.headersSent
-      ) {
+      if (!res.headersSent) {
         return res.status(500).json({
           error:
             "Unable to download book.",

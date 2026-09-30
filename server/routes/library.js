@@ -24,6 +24,7 @@ router.get(
   requireAuth,
   async (req, res) => {
     try {
+
       const result =
         await pool.query(
           `
@@ -47,29 +48,36 @@ router.get(
             ON books.id =
               library.book_id
 
-          WHERE library.user_id = $1
+          WHERE
+            library.user_id = $1
 
           ORDER BY
             library.purchased_at DESC
           `,
-          [req.user.id]
+          [
+            req.user.id
+          ]
         );
 
-      res.json({
+
+      return res.json({
         books:
-          result.rows,
+          result.rows
       });
 
     } catch (error) {
+
       console.error(
         "Library fetch error:",
         error
       );
 
-      res.status(500).json({
+
+      return res.status(500).json({
         error:
-          "Unable to load your library",
+          "Unable to load your library"
       });
+
     }
   }
 );
@@ -84,22 +92,29 @@ router.get(
   "/:bookId/download",
   requireAuth,
   async (req, res) => {
+
     try {
+
+      /* ==============================================
+         BOOK ID
+      ============================================== */
+
       const bookId =
         Number(
           req.params.bookId
         );
 
+
       if (
-        !Number.isInteger(
-          bookId
-        ) ||
+        !Number.isInteger(bookId) ||
         bookId <= 0
       ) {
+
         return res.status(400).json({
           error:
-            "Invalid book ID",
+            "Invalid book ID"
         });
+
       }
 
 
@@ -116,7 +131,8 @@ router.get(
             library.downloaded_at,
 
             books.file_key,
-            books.title
+            books.title,
+            books.author
 
           FROM library
 
@@ -126,93 +142,142 @@ router.get(
 
           WHERE
             library.user_id = $1
+
             AND books.id = $2
 
           LIMIT 1
           `,
           [
             req.user.id,
-            bookId,
+            bookId
           ]
         );
 
 
+      /* ==============================================
+         USER DOES NOT OWN BOOK
+      ============================================== */
+
       if (
         result.rows.length === 0
       ) {
+
         return res.status(403).json({
           error:
-            "You have not purchased this book.",
+            "You have not purchased this book."
         });
+
       }
 
 
       const libraryBook =
         result.rows[0];
 
-      const {
-        file_key,
-        title,
-      } = libraryBook;
+
+      const fileKey =
+        libraryBook.file_key;
+
+
+      const title =
+        libraryBook.title;
+
+
+      const author =
+        libraryBook.author ||
+        "Santiano Books";
 
 
       /* ==============================================
-         BOOK MUST HAVE A PDF
+         BOOK MUST HAVE PDF
       ============================================== */
 
-      if (!file_key) {
+      if (!fileKey) {
+
         return res.status(404).json({
           error:
-            "This book has no PDF file.",
+            "This book has no PDF file."
         });
+
       }
 
 
       /* ==============================================
-         CREATE TEMPORARY SIGNED URL
-
+         TEMPORARY SIGNED URL
+         
          SUPABASE BUCKET:
          ebooks
 
-         BUCKET REMAINS PRIVATE.
+         BUCKET:
+         PRIVATE
 
          URL LIFETIME:
-         5 MINUTES
+         300 SECONDS = 5 MINUTES
+
+         IMPORTANT:
+         The PDF itself is NOT downloaded
+         through Render.
       ============================================== */
+
+      const expiresIn =
+        300;
+
 
       const {
         data,
-        error: signedUrlError,
+        error: signedUrlError
       } =
         await supabase.storage
           .from("ebooks")
           .createSignedUrl(
-            file_key,
-            300
+            fileKey,
+            expiresIn
           );
 
+
+      /* ==============================================
+         SIGNED URL ERROR
+      ============================================== */
 
       if (
         signedUrlError ||
         !data?.signedUrl
       ) {
+
         console.error(
           "Supabase signed URL error:",
           signedUrlError
         );
 
+
         return res.status(500).json({
           error:
-            "Unable to prepare your book for download.",
+            "Unable to prepare your book for download."
         });
+
       }
 
 
       /* ==============================================
+         CALCULATE ABSOLUTE EXPIRATION TIME
+         
+         This allows the frontend countdown to
+         represent the actual expiration time instead
+         of simply starting a fresh 5-minute timer.
+      ============================================== */
+
+      const expiresAt =
+        Date.now() +
+        expiresIn * 1000;
+
+
+      /* ==============================================
          RECORD DOWNLOAD
+         
+         We only record the first download time.
       ============================================== */
 
       try {
+
         await pool.query(
           `
           UPDATE library
@@ -226,50 +291,84 @@ router.get(
 
           WHERE
             user_id = $1
+
             AND book_id = $2
           `,
           [
             req.user.id,
-            bookId,
+            bookId
           ]
         );
+
 
         console.log(
           `Book download authorized: user=${req.user.id}, book=${bookId}`
         );
 
       } catch (updateError) {
+
         console.error(
           "Unable to record book download:",
           updateError
         );
+
       }
 
 
       /* ==============================================
-         RETURN TEMPORARY DOWNLOAD LINK
+         RETURN TEMPORARY DOWNLOAD INFORMATION
+         
+         Render returns ONLY JSON.
+
+         Render does NOT stream the PDF.
+
+         The browser will later download the PDF
+         directly from Supabase Storage.
       ============================================== */
 
       return res.json({
-        success: true,
-        title: title,
-        expires_in: 300,
-        download_url: data.signedUrl
+
+        success:
+          true,
+
+        title:
+          title,
+
+        author:
+          author,
+
+        expires_in:
+          expiresIn,
+
+        expires_at:
+          expiresAt,
+
+        download_url:
+          data.signedUrl
+
       });
 
     } catch (error) {
+
       console.error(
         "Book download error:",
         error
       );
 
-      if (!res.headersSent) {
+
+      if (
+        !res.headersSent
+      ) {
+
         return res.status(500).json({
           error:
-            "Unable to download book.",
+            "Unable to download book."
         });
+
       }
+
     }
+
   }
 );
 

@@ -7,7 +7,7 @@ const CHECKOUT_API =
   "https://santiano-books.onrender.com/api";
 
 const PAYSTACK_PUBLIC_KEY =
-  "pk_live_87c9da8d951f26772deb4bdfa3c3f2d832b9de25";
+  "pk_test_394587bc6abb11baca45c1bd8774d55861d6216c";
 
 // =====================================================
 // AUTH TOKEN

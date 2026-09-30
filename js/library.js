@@ -6,6 +6,7 @@ const API =
   window.SANTIANO_API ||
   "https://santiano-books.onrender.com/api";
 
+
 const SUPABASE_COVERS_URL =
   "https://zzgjyznobxsfktcaaple.supabase.co/storage/v1/object/public/covers";
 
@@ -58,7 +59,8 @@ function coverUrl(coverKey) {
     return "";
   }
 
-  let cleanKey = String(coverKey).trim();
+  let cleanKey =
+    String(coverKey).trim();
 
   if (
     cleanKey.startsWith("http://") ||
@@ -67,10 +69,20 @@ function coverUrl(coverKey) {
     return cleanKey;
   }
 
-  cleanKey = cleanKey
-    .replace(/^uploads[\\/]+covers[\\/]+/i, "")
-    .replace(/^covers[\\/]+/i, "")
-    .replace(/[\\]+/g, "/");
+  cleanKey =
+    cleanKey
+      .replace(
+        /^uploads[\\/]+covers[\\/]+/i,
+        ""
+      )
+      .replace(
+        /^covers[\\/]+/i,
+        ""
+      )
+      .replace(
+        /[\\/]+/g,
+        "/"
+      );
 
   return `${SUPABASE_COVERS_URL}/${cleanKey
     .split("/")
@@ -107,17 +119,25 @@ function formatDate(date) {
     return "";
   }
 
-  const parsed = new Date(date);
+  const parsed =
+    new Date(date);
 
-  if (Number.isNaN(parsed.getTime())) {
+  if (
+    Number.isNaN(
+      parsed.getTime()
+    )
+  ) {
     return "";
   }
 
-  return parsed.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric"
-  });
+  return parsed.toLocaleDateString(
+    "en-US",
+    {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    }
+  );
 }
 
 
@@ -131,67 +151,103 @@ function redirectToLogin() {
     "library.html"
   );
 
-  window.location.href = "login.html";
+  window.location.href =
+    "login.html";
 }
 
 
 /* =====================================================
    DOWNLOAD BOOK
-   SERVER RETURNS A TEMPORARY SIGNED URL
-   VALID FOR 5 MINUTES
+   SERVER ONLY AUTHORIZES THE REQUEST.
+
+   SUPABASE PROVIDES THE ACTUAL TEMPORARY
+   SIGNED DOWNLOAD URL.
+
+   RENDER DOES NOT STREAM THE PDF.
 ===================================================== */
 
-async function downloadBook(bookId, bookTitle) {
-  const token = getAuthToken();
+async function downloadBook(
+  bookId,
+  bookTitle,
+  bookAuthor = "Santiano Books"
+) {
+
+  const token =
+    getAuthToken();
 
   if (!token) {
     redirectToLogin();
     return;
   }
 
-  const button = document.querySelector(
-    `[data-download-book="${bookId}"]`
-  );
 
-  const originalText = button
-    ? button.textContent
-    : "DOWNLOAD";
+  const button =
+    document.querySelector(
+      `[data-download-book="${bookId}"]`
+    );
+
+
+  const originalText =
+    button
+      ? button.textContent
+      : "DOWNLOAD";
+
 
   try {
+
     /* ---------------------------------------------
        BUTTON STATE
     --------------------------------------------- */
 
     if (button) {
       button.disabled = true;
-      button.textContent = "PREPARING...";
+      button.textContent =
+        "PREPARING...";
     }
 
 
     /* ---------------------------------------------
-       ASK BACKEND FOR TEMPORARY LINK
+       ASK BACKEND FOR TEMPORARY SUPABASE URL
+
+       IMPORTANT:
+       Only a small authorization request
+       goes through Render.
+
+       The ebook itself does NOT go through Render.
     --------------------------------------------- */
 
-    const response = await fetch(
-      `${API}/library/${encodeURIComponent(bookId)}/download`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`
+    const response =
+      await fetch(
+        `${API}/library/${encodeURIComponent(bookId)}/download`,
+        {
+          method: "GET",
+
+          headers: {
+            Authorization:
+              `Bearer ${token}`
+          }
         }
-      }
-    );
+      );
 
 
     /* ---------------------------------------------
        AUTHENTICATION ERROR
     --------------------------------------------- */
 
-    if (response.status === 401) {
-      localStorage.removeItem("santianoToken");
-      localStorage.removeItem("santianoUser");
+    if (
+      response.status === 401
+    ) {
+
+      localStorage.removeItem(
+        "santianoToken"
+      );
+
+      localStorage.removeItem(
+        "santianoUser"
+      );
 
       redirectToLogin();
+
       return;
     }
 
@@ -201,14 +257,27 @@ async function downloadBook(bookId, bookTitle) {
     --------------------------------------------- */
 
     const contentType =
-      response.headers.get("content-type") || "";
+      response.headers.get(
+        "content-type"
+      ) || "";
+
 
     let data = {};
 
-    if (contentType.includes("application/json")) {
-      data = await response
-        .json()
-        .catch(() => ({}));
+
+    if (
+      contentType.includes(
+        "application/json"
+      )
+    ) {
+
+      data =
+        await response
+          .json()
+          .catch(
+            () => ({})
+          );
+
     }
 
 
@@ -217,112 +286,170 @@ async function downloadBook(bookId, bookTitle) {
     --------------------------------------------- */
 
     if (!response.ok) {
+
       throw new Error(
         data.error ||
         "Unable to prepare this book for download."
       );
+
     }
 
 
     /* ---------------------------------------------
-       CHECK TEMPORARY URL
+       CHECK SIGNED URL
     --------------------------------------------- */
 
-    if (!data.download_url) {
+    if (
+      !data.download_url
+    ) {
+
       throw new Error(
         "The server did not provide a temporary download link."
       );
+
     }
 
 
     /* ---------------------------------------------
-       TEMPORARY DOWNLOAD URL
-       
-       The signed URL expires after 5 minutes.
+       GET SUPABASE SIGNED URL
     --------------------------------------------- */
 
     const temporaryUrl =
-      String(data.download_url);
+      String(
+        data.download_url
+      );
 
 
     /* ---------------------------------------------
-       OPEN TEMPORARY LINK
-       
-       We do NOT fetch the PDF into JavaScript.
-       We do NOT create a permanent public URL.
+       GET EXPIRATION TIME
+
+       Backend currently returns:
+
+       expires_in: 300
+
+       = 5 minutes
     --------------------------------------------- */
 
-    const link =
-      document.createElement("a");
-
-    link.href =
-      temporaryUrl;
-
-    link.target =
-      "_blank";
-
-    link.rel =
-      "noopener noreferrer";
-
-    link.textContent =
-      `Download ${bookTitle || "Santiano Book"}`;
-
-    link.style.display =
-      "none";
-
-    document.body.appendChild(link);
-
-    link.click();
-
-    link.remove();
+    const expiresIn =
+      Number(
+        data.expires_in
+      ) || 300;
 
 
     /* ---------------------------------------------
-       UPDATE BUTTON
+       CREATE TEMPORARY DOWNLOAD PAGE
+
+       The Supabase signed URL is passed to
+       download.html.
+
+       The actual PDF is still hosted by Supabase.
+    --------------------------------------------- */
+
+    const temporaryPage =
+      new URL(
+        "download.html",
+        window.location.href
+      );
+
+
+    temporaryPage.searchParams.set(
+      "url",
+      temporaryUrl
+    );
+
+
+    temporaryPage.searchParams.set(
+      "title",
+      data.title ||
+      bookTitle ||
+      "Santiano Book"
+    );
+
+
+    temporaryPage.searchParams.set(
+      "author",
+      data.author ||
+      bookAuthor ||
+      "Santiano Books"
+    );
+
+
+    temporaryPage.searchParams.set(
+  "expires_at",
+  String(
+    data.expires_at
+  )
+    );
+
+
+    /* ---------------------------------------------
+       OPEN TEMPORARY DOWNLOAD PAGE
+    --------------------------------------------- */
+
+    window.open(
+      temporaryPage.href,
+      "_blank"
+    );
+
+
+    /* ---------------------------------------------
+       UPDATE LIBRARY BUTTON
     --------------------------------------------- */
 
     if (button) {
+
       button.textContent =
         "DOWNLOAD AGAIN";
 
       button.dataset.downloaded =
         "true";
+
     }
 
 
     /* ---------------------------------------------
-       OPTIONAL USER MESSAGE
+       LOG EXPIRATION
     --------------------------------------------- */
 
-    if (data.expires_in) {
-      console.log(
-        `Santiano Books: temporary download link created. Expires in ${data.expires_in} seconds.`
-      );
-    }
+    console.log(
+      `Santiano Books: Supabase temporary download URL created. Expires in ${expiresIn} seconds.`
+    );
+
 
   } catch (error) {
+
     console.error(
       "Santiano download error:",
       error
     );
+
 
     alert(
       error.message ||
       "Unable to download this book."
     );
 
+
   } finally {
+
     if (button) {
-      button.disabled = false;
+
+      button.disabled =
+        false;
+
 
       if (
         button.textContent ===
         "PREPARING..."
       ) {
+
         button.textContent =
           originalText;
+
       }
+
     }
+
   }
 }
 
@@ -336,14 +463,17 @@ function confirmRepurchase(
   bookTitle,
   bookData
 ) {
+
   const confirmed =
     window.confirm(
       "You owned this book already, are you sure you want to continue with the payment?"
     );
 
+
   if (!confirmed) {
     return;
   }
+
 
   startRepurchase(
     bookId,
@@ -362,25 +492,35 @@ async function startRepurchase(
   bookTitle,
   bookData
 ) {
+
   const token =
     getAuthToken();
+
 
   if (!token) {
     redirectToLogin();
     return;
   }
 
+
   const button =
     document.querySelector(
       `[data-download-book="${bookId}"]`
     );
 
+
   try {
+
     if (button) {
-      button.disabled = true;
+
+      button.disabled =
+        true;
+
       button.textContent =
         "PREPARING PAYMENT...";
+
     }
+
 
     const response =
       await fetch(
@@ -411,32 +551,47 @@ async function startRepurchase(
         }
       );
 
+
     const data =
       await response.json();
 
+
     if (!response.ok) {
+
       throw new Error(
         data.error ||
         "Unable to create your new order."
       );
+
     }
 
+
     if (!data.order) {
+
       throw new Error(
         "The server did not return an order."
       );
+
     }
 
+
     const orderId =
-      Number(data.order.id);
+      Number(
+        data.order.id
+      );
+
 
     if (
-      !Number.isInteger(orderId) ||
+      !Number.isInteger(
+        orderId
+      ) ||
       orderId <= 0
     ) {
+
       throw new Error(
         "The server returned an invalid order ID."
       );
+
     }
 
 
@@ -451,10 +606,14 @@ async function startRepurchase(
         ) || "[]"
       );
 
+
     localStorage.setItem(
       "santianoRepurchaseOriginalCart",
+
       JSON.stringify(
-        Array.isArray(originalCart)
+        Array.isArray(
+          originalCart
+        )
           ? originalCart
           : []
       )
@@ -466,6 +625,7 @@ async function startRepurchase(
     --------------------------------------------- */
 
     const temporaryCart = [
+
       {
         id:
           Number(bookId),
@@ -498,10 +658,13 @@ async function startRepurchase(
         qty:
           1
       }
+
     ];
+
 
     localStorage.setItem(
       getCartKey(),
+
       JSON.stringify(
         temporaryCart
       )
@@ -513,6 +676,7 @@ async function startRepurchase(
     --------------------------------------------- */
 
     const pendingOrder = {
+
       ...data.order,
 
       id:
@@ -529,10 +693,13 @@ async function startRepurchase(
           data.order.currency ||
           "NGN"
         ).toUpperCase()
+
     };
+
 
     localStorage.setItem(
       "santianoPendingOrder",
+
       JSON.stringify(
         pendingOrder
       )
@@ -556,24 +723,31 @@ async function startRepurchase(
     window.location.href =
       "checkout.html";
 
+
   } catch (error) {
+
     console.error(
       "Santiano repurchase error:",
       error
     );
+
 
     alert(
       error.message ||
       "Unable to continue with payment."
     );
 
+
     if (button) {
+
       button.disabled =
         false;
 
       button.textContent =
         "DOWNLOAD AGAIN";
+
     }
+
   }
 }
 
@@ -588,7 +762,9 @@ function handleLibraryAction(
   hasDownloaded,
   bookData
 ) {
+
   if (hasDownloaded) {
+
     confirmRepurchase(
       bookId,
       bookTitle,
@@ -598,9 +774,12 @@ function handleLibraryAction(
     return;
   }
 
+
   downloadBook(
     bookId,
-    bookTitle
+    bookTitle,
+    bookData.author ||
+      "Santiano Books"
   );
 }
 
@@ -609,25 +788,32 @@ function handleLibraryAction(
    BOOK CARD
 ===================================================== */
 
-function libraryBookCard(book) {
+function libraryBookCard(
+  book
+) {
+
   const cover =
     coverUrl(
       book.cover_key
     );
+
 
   const hasDownloaded =
     Boolean(
       book.downloaded_at
     );
 
+
   const buttonText =
     hasDownloaded
       ? "DOWNLOAD AGAIN"
       : "DOWNLOAD";
 
+
   const bookData =
     encodeURIComponent(
       JSON.stringify({
+
         author:
           book.author ||
           "",
@@ -649,8 +835,10 @@ function libraryBookCard(book) {
         cover_key:
           book.cover_key ||
           ""
+
       })
     );
+
 
   const safeTitle =
     escapeHTML(
@@ -668,6 +856,7 @@ function libraryBookCard(book) {
 
         ${
           cover
+
             ? `
               <img
                 src="${escapeHTML(cover)}"
@@ -688,6 +877,7 @@ function libraryBookCard(book) {
                 "
               >
             `
+
             : `
               <h3>
                 ${escapeHTML(
@@ -720,10 +910,13 @@ function libraryBookCard(book) {
 
 
       <div class="library-date muted">
+
         Purchased:
+
         ${formatDate(
           book.purchased_at
         )}
+
       </div>
 
 
@@ -750,8 +943,11 @@ function libraryBookCard(book) {
           onclick="
             handleLibraryAction(
               ${Number(book.id)},
+
               '${safeTitle}',
+
               ${hasDownloaded},
+
               JSON.parse(
                 decodeURIComponent(
                   '${bookData}'
@@ -760,7 +956,9 @@ function libraryBookCard(book) {
             )
           "
         >
+
           ${buttonText}
+
         </button>
 
       </div>
@@ -775,32 +973,46 @@ function libraryBookCard(book) {
 ===================================================== */
 
 async function loadLibrary() {
+
   const message =
     document.querySelector(
       "[data-library-message]"
     );
+
 
   const grid =
     document.querySelector(
       "[data-library-grid]"
     );
 
-  if (!message || !grid) {
+
+  if (
+    !message ||
+    !grid
+  ) {
     return;
   }
+
 
   const token =
     getAuthToken();
 
+
   if (!token) {
+
     redirectToLogin();
+
     return;
+
   }
+
 
   message.textContent =
     "Loading your library...";
 
+
   try {
+
     const response =
       await fetch(
         `${API}/library`,
@@ -814,6 +1026,7 @@ async function loadLibrary() {
         }
       );
 
+
     const data =
       await response.json();
 
@@ -826,6 +1039,7 @@ async function loadLibrary() {
       response.status === 401 ||
       response.status === 403
     ) {
+
       localStorage.removeItem(
         "santianoToken"
       );
@@ -837,18 +1051,21 @@ async function loadLibrary() {
       redirectToLogin();
 
       return;
+
     }
 
 
     /* ---------------------------------------------
-       OTHER SERVER ERROR
+       SERVER ERROR
     --------------------------------------------- */
 
     if (!response.ok) {
+
       throw new Error(
         data.error ||
         "Unable to load your library."
       );
+
     }
 
 
@@ -871,6 +1088,7 @@ async function loadLibrary() {
     if (
       libraryBooks.length === 0
     ) {
+
       message.innerHTML = `
         You haven't purchased any books yet.
 
@@ -886,10 +1104,12 @@ async function loadLibrary() {
         </a>
       `;
 
+
       grid.innerHTML =
         "";
 
       return;
+
     }
 
 
@@ -916,15 +1136,19 @@ async function loadLibrary() {
         )
         .join("");
 
+
   } catch (error) {
+
     console.error(
       "Santiano Library error:",
       error
     );
 
+
     message.textContent =
       error.message ||
       "Unable to load your library.";
+
   }
 }
 
@@ -934,6 +1158,7 @@ async function loadLibrary() {
 ===================================================== */
 
 function logout() {
+
   localStorage.removeItem(
     "santianoToken"
   );
@@ -954,6 +1179,7 @@ function logout() {
     "santianoRepurchaseOriginalCart"
   );
 
+
   window.location.href =
     "login.html";
 }
@@ -964,14 +1190,17 @@ function logout() {
 ===================================================== */
 
 function setupLogout() {
+
   const button =
     document.getElementById(
       "logoutButton"
     );
 
+
   if (!button) {
     return;
   }
+
 
   button.addEventListener(
     "click",
@@ -991,12 +1220,16 @@ document.addEventListener(
     const user =
       getUser();
 
+
     const cartKey =
       getCartKey();
 
+
     let cart = [];
 
+
     try {
+
       cart =
         JSON.parse(
           localStorage.getItem(
@@ -1004,16 +1237,21 @@ document.addEventListener(
           ) || "[]"
         );
 
+
       if (
         !Array.isArray(
           cart
         )
       ) {
+
         cart = [];
+
       }
 
     } catch {
+
       cart = [];
+
     }
 
 
@@ -1034,14 +1272,17 @@ document.addEventListener(
         0
       );
 
+
     document
       .querySelectorAll(
         "[data-cart-count]"
       )
       .forEach(
         element => {
+
           element.textContent =
             cartCount;
+
         }
       );
 
@@ -1055,14 +1296,17 @@ document.addEventListener(
         "[data-user-name]"
       );
 
+
     if (
       nameElement &&
       user
     ) {
+
       nameElement.textContent =
         user.full_name ||
         user.name ||
         "Reader";
+
     }
 
 
@@ -1073,5 +1317,6 @@ document.addEventListener(
     setupLogout();
 
     loadLibrary();
+
   }
 );

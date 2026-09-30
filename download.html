@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Santiano Books — Download</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+    }
+
+    body {
+      min-height: 100vh;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      padding: 24px;
+
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+      background:
+        #f4f1e8;
+
+      color: #151515;
+    }
+
+
+    /* =================================================
+       MAIN CARD
+    ================================================= */
+
+    .download-container {
+      width: 100%;
+      max-width: 560px;
+
+      background: #ffffff;
+
+      border-radius: 22px;
+
+      padding: 42px 30px;
+
+      text-align: center;
+
+      box-shadow:
+        0 25px 70px rgba(0, 0, 0, 0.12);
+    }
+
+
+    /* =================================================
+       BRAND
+    ================================================= */
+
+    .brand {
+      margin-bottom: 35px;
+
+      font-size: 14px;
+      font-weight: 900;
+
+      letter-spacing: 5px;
+    }
+
+
+    /* =================================================
+       STATUS
+    ================================================= */
+
+    .status {
+      margin-bottom: 12px;
+
+      font-size: 12px;
+      font-weight: 800;
+
+      letter-spacing: 2px;
+
+      text-transform: uppercase;
+    }
+
+
+    /* =================================================
+       BOOK
+    ================================================= */
+
+    .book-title {
+      margin: 0 auto 10px;
+
+      max-width: 460px;
+
+      font-size: 30px;
+      line-height: 1.2;
+
+      font-weight: 800;
+    }
+
+
+    .book-author {
+      margin-bottom: 32px;
+
+      color: #777777;
+
+      font-size: 14px;
+    }
+
+
+    /* =================================================
+       TIMER
+    ================================================= */
+
+    .timer-label {
+      margin-bottom: 7px;
+
+      color: #777777;
+
+      font-size: 13px;
+    }
+
+
+    .timer {
+      margin-bottom: 25px;
+
+      font-size: 48px;
+      line-height: 1;
+
+      font-weight: 900;
+
+      letter-spacing: 3px;
+    }
+
+
+    /* =================================================
+       DOWNLOAD BUTTON
+    ================================================= */
+
+    .download-button {
+      display: inline-flex;
+
+      align-items: center;
+      justify-content: center;
+
+      min-width: 220px;
+      min-height: 54px;
+
+      padding: 0 28px;
+
+      border-radius: 10px;
+
+      background: #151515;
+      color: #ffffff;
+
+      text-decoration: none;
+
+      font-size: 13px;
+      font-weight: 900;
+
+      letter-spacing: 1px;
+
+      transition:
+        transform 0.2s ease,
+        opacity 0.2s ease;
+    }
+
+
+    .download-button:hover {
+      transform: translateY(-2px);
+    }
+
+
+    .download-button.disabled {
+      pointer-events: none;
+
+      opacity: 0.45;
+    }
+
+
+    /* =================================================
+       SECURITY MESSAGE
+    ================================================= */
+
+    .message {
+      max-width: 420px;
+
+      margin: 22px auto 0;
+
+      color: #777777;
+
+      font-size: 13px;
+
+      line-height: 1.6;
+    }
+
+
+    /* =================================================
+       EXPIRED SCREEN
+    ================================================= */
+
+    .expired {
+      display: none;
+    }
+
+
+    .expired.show {
+      display: block;
+    }
+
+
+    .download-content.hide {
+      display: none;
+    }
+
+
+    .expired-title {
+      margin: 0 0 12px;
+
+      font-size: 26px;
+    }
+
+
+    .expired-message {
+      margin: 0 auto;
+
+      max-width: 400px;
+
+      color: #777777;
+
+      font-size: 14px;
+
+      line-height: 1.7;
+    }
+
+
+    /* =================================================
+       ERROR SCREEN
+    ================================================= */
+
+    .error {
+      display: none;
+    }
+
+
+    .error.show {
+      display: block;
+    }
+
+
+    .error-title {
+      margin: 0 0 12px;
+
+      font-size: 26px;
+    }
+
+
+    .error-message {
+      color: #777777;
+
+      font-size: 14px;
+
+      line-height: 1.7;
+    }
+
+
+    /* =================================================
+       MOBILE
+    ================================================= */
+
+    @media (max-width: 600px) {
+
+      body {
+        padding: 16px;
+      }
+
+
+      .download-container {
+        padding: 34px 20px;
+      }
+
+
+      .book-title {
+        font-size: 24px;
+      }
+
+
+      .timer {
+        font-size: 40px;
+      }
+
+
+      .download-button {
+        width: 100%;
+      }
+
+    }
+  </style>
+</head>
+
+
+<body>
+
+  <main class="download-container">
+
+
+    <!-- =============================================
+         BRAND
+    ============================================== -->
+
+    <div class="brand">
+      SANTIANO BOOKS
+    </div>
+
+
+
+    <!-- =============================================
+         DOWNLOAD CONTENT
+    ============================================== -->
+
+    <section
+      id="downloadContent"
+      class="download-content"
+    >
+
+      <div class="status">
+        Your book is ready
+      </div>
+
+
+      <h1
+        id="bookTitle"
+        class="book-title"
+      >
+        Your Santiano Book
+      </h1>
+
+
+      <div
+        id="bookAuthor"
+        class="book-author"
+      >
+        Santiano Books
+      </div>
+
+
+
+      <!-- TIMER -->
+
+      <div class="timer-label">
+        Download link expires in
+      </div>
+
+
+      <div
+        id="timer"
+        class="timer"
+      >
+        05:00
+      </div>
+
+
+
+      <!-- DOWNLOAD -->
+
+      <a
+        id="downloadButton"
+        class="download-button"
+        href="#"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        DOWNLOAD YOUR BOOK
+      </a>
+
+
+
+      <p class="message">
+        This is a secure temporary download link.
+        Your download link is controlled by
+        Santiano Books and expires automatically.
+      </p>
+
+    </section>
+
+
+
+    <!-- =============================================
+         EXPIRED CONTENT
+    ============================================== -->
+
+    <section
+      id="expiredContent"
+      class="expired"
+    >
+
+      <h2 class="expired-title">
+        Download link expired
+      </h2>
+
+
+      <p class="expired-message">
+        This temporary download link has expired.
+        Return to your Santiano Books library to
+        request a new download link.
+      </p>
+
+    </section>
+
+
+
+    <!-- =============================================
+         ERROR CONTENT
+    ============================================== -->
+
+    <section
+      id="errorContent"
+      class="error"
+    >
+
+      <h2 class="error-title">
+        Download unavailable
+      </h2>
+
+
+      <p
+        id="errorMessage"
+        class="error-message"
+      >
+        This download link is invalid.
+      </p>
+
+    </section>
+
+  </main>
+
+
+  <!-- ===============================================
+       JAVASCRIPT
+  ================================================ -->
+
+  <script src="js/download.js"></script>
+
+</body>
+</html>

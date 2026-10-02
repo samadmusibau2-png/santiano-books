@@ -1,3 +1,8 @@
+const dns = require("dns");
+
+dns.setDefaultResultOrder("ipv4first");
+
+
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -10,6 +15,7 @@ const nodemailer = require("nodemailer");
 ===================================================== */
 
 function makeToken(user) {
+
     return jwt.sign(
         {
             id: user.id,
@@ -17,237 +23,397 @@ function makeToken(user) {
             name: user.name,
             role: user.role
         },
+
         process.env.JWT_SECRET,
+
         {
             expiresIn: "7d"
         }
     );
+
 }
 
 
-/* =========================
+/* =====================================================
    EMAIL TRANSPORTER
-========================= */
+===================================================== */
 
-const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    family: 4,
+const transporter =
+    nodemailer.createTransport({
 
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD
-    },
+        host: "smtp.gmail.com",
 
-    connectionTimeout: 20000,
-    greetingTimeout: 20000,
-    socketTimeout: 30000
-});
+        port: 587,
+
+        secure: false,
+
+        requireTLS: true,
+
+        auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASSWORD
+        },
+
+        connectionTimeout: 20000,
+
+        greetingTimeout: 20000,
+
+        socketTimeout: 30000
+
+    });
+
+
+/* =====================================================
+   SMTP CONNECTION TEST
+===================================================== */
+
+transporter.verify()
+
+    .then(() => {
+
+        console.log(
+            "Santiano Books SMTP connection successful."
+        );
+
+    })
+
+    .catch(error => {
+
+        console.error(
+            "Santiano Books SMTP connection failed:",
+            error.message
+        );
+
+    });
 
 
 /* =====================================================
    REGISTER
 ===================================================== */
 
-router.post("/register", async (req, res, next) => {
-    try {
-        const {
-            name,
-            email,
-            password
-        } = req.body;
+router.post(
+    "/register",
+    async (req, res, next) => {
 
-        if (
-            typeof name !== "string" ||
-            typeof email !== "string" ||
-            typeof password !== "string"
-        ) {
-            return res.status(400).json({
-                error: "Name, email and password are required"
-            });
-        }
+        try {
 
-        const cleanName = name.trim();
-        const normalizedEmail = email.trim().toLowerCase();
-
-        if (
-            !cleanName ||
-            !normalizedEmail ||
-            !password
-        ) {
-            return res.status(400).json({
-                error: "Name, email and password are required"
-            });
-        }
-
-        if (password.length < 8) {
-            return res.status(400).json({
-                error: "Password must be at least 8 characters"
-            });
-        }
-
-        const db = req.app.locals.db;
-
-        const existing = await db.query(
-            `
-            SELECT id
-            FROM users
-            WHERE email = $1
-            `,
-            [normalizedEmail]
-        );
-
-        if (existing.rowCount > 0) {
-            return res.status(409).json({
-                error:
-                    "An account with that email already exists"
-            });
-        }
-
-        const passwordHash =
-            await bcrypt.hash(password, 12);
-
-        const result = await db.query(
-            `
-            INSERT INTO users
-                (
-                    full_name,
-                    email,
-                    password_hash
-                )
-            VALUES
-                (
-                    $1,
-                    $2,
-                    $3
-                )
-            RETURNING
-                id,
-                full_name,
+            const {
+                name,
                 email,
-                role,
-                created_at
-            `,
-            [
-                cleanName,
-                normalizedEmail,
-                passwordHash
-            ]
-        );
+                password
+            } = req.body;
 
-        const row = result.rows[0];
 
-        const user = {
-            id: row.id,
-            name: row.full_name,
-            email: row.email,
-            role: row.role,
-            created_at: row.created_at
-        };
+            if (
+                typeof name !== "string" ||
+                typeof email !== "string" ||
+                typeof password !== "string"
+            ) {
 
-        const token = makeToken(user);
+                return res.status(400).json({
 
-        res.status(201).json({
-            user,
-            token
-        });
+                    error:
+                        "Name, email and password are required"
 
-    } catch (error) {
-        next(error);
+                });
+
+            }
+
+
+            const cleanName =
+                name.trim();
+
+
+            const normalizedEmail =
+                email
+                    .trim()
+                    .toLowerCase();
+
+
+            if (
+                !cleanName ||
+                !normalizedEmail ||
+                !password
+            ) {
+
+                return res.status(400).json({
+
+                    error:
+                        "Name, email and password are required"
+
+                });
+
+            }
+
+
+            if (password.length < 8) {
+
+                return res.status(400).json({
+
+                    error:
+                        "Password must be at least 8 characters"
+
+                });
+
+            }
+
+
+            const db =
+                req.app.locals.db;
+
+
+            const existing =
+                await db.query(
+                    `
+                    SELECT id
+                    FROM users
+                    WHERE email = $1
+                    `,
+                    [
+                        normalizedEmail
+                    ]
+                );
+
+
+            if (existing.rowCount > 0) {
+
+                return res.status(409).json({
+
+                    error:
+                        "An account with that email already exists"
+
+                });
+
+            }
+
+
+            const passwordHash =
+                await bcrypt.hash(
+                    password,
+                    12
+                );
+
+
+            const result =
+                await db.query(
+                    `
+                    INSERT INTO users
+                        (
+                            full_name,
+                            email,
+                            password_hash
+                        )
+                    VALUES
+                        (
+                            $1,
+                            $2,
+                            $3
+                        )
+                    RETURNING
+                        id,
+                        full_name,
+                        email,
+                        role,
+                        created_at
+                    `,
+                    [
+                        cleanName,
+                        normalizedEmail,
+                        passwordHash
+                    ]
+                );
+
+
+            const row =
+                result.rows[0];
+
+
+            const user = {
+
+                id: row.id,
+
+                name: row.full_name,
+
+                email: row.email,
+
+                role: row.role,
+
+                created_at:
+                    row.created_at
+
+            };
+
+
+            const token =
+                makeToken(user);
+
+
+            res.status(201).json({
+
+                user,
+
+                token
+
+            });
+
+
+        } catch (error) {
+
+            next(error);
+
+        }
+
     }
-});
+);
 
 
 /* =====================================================
    LOGIN
 ===================================================== */
 
-router.post("/login", async (req, res, next) => {
-    try {
-        const {
-            email,
-            password
-        } = req.body;
+router.post(
+    "/login",
+    async (req, res, next) => {
 
-        if (
-            typeof email !== "string" ||
-            typeof password !== "string"
-        ) {
-            return res.status(400).json({
-                error: "Email and password are required"
-            });
-        }
+        try {
 
-        const normalizedEmail =
-            email.trim().toLowerCase();
-
-        if (
-            !normalizedEmail ||
-            !password
-        ) {
-            return res.status(400).json({
-                error: "Email and password are required"
-            });
-        }
-
-        const db = req.app.locals.db;
-
-        const result = await db.query(
-            `
-            SELECT
-                id,
-                full_name,
+            const {
                 email,
-                password_hash,
-                role,
-                created_at
-            FROM users
-            WHERE email = $1
-            `,
-            [normalizedEmail]
-        );
+                password
+            } = req.body;
 
-        if (result.rowCount === 0) {
-            return res.status(401).json({
-                error: "Invalid email or password"
+
+            if (
+                typeof email !== "string" ||
+                typeof password !== "string"
+            ) {
+
+                return res.status(400).json({
+
+                    error:
+                        "Email and password are required"
+
+                });
+
+            }
+
+
+            const normalizedEmail =
+                email
+                    .trim()
+                    .toLowerCase();
+
+
+            if (
+                !normalizedEmail ||
+                !password
+            ) {
+
+                return res.status(400).json({
+
+                    error:
+                        "Email and password are required"
+
+                });
+
+            }
+
+
+            const db =
+                req.app.locals.db;
+
+
+            const result =
+                await db.query(
+                    `
+                    SELECT
+                        id,
+                        full_name,
+                        email,
+                        password_hash,
+                        role,
+                        created_at
+                    FROM users
+                    WHERE email = $1
+                    `,
+                    [
+                        normalizedEmail
+                    ]
+                );
+
+
+            if (result.rowCount === 0) {
+
+                return res.status(401).json({
+
+                    error:
+                        "Invalid email or password"
+
+                });
+
+            }
+
+
+            const row =
+                result.rows[0];
+
+
+            const validPassword =
+                await bcrypt.compare(
+                    password,
+                    row.password_hash
+                );
+
+
+            if (!validPassword) {
+
+                return res.status(401).json({
+
+                    error:
+                        "Invalid email or password"
+
+                });
+
+            }
+
+
+            const user = {
+
+                id: row.id,
+
+                name: row.full_name,
+
+                email: row.email,
+
+                role: row.role,
+
+                created_at:
+                    row.created_at
+
+            };
+
+
+            const token =
+                makeToken(user);
+
+
+            res.json({
+
+                user,
+
+                token
+
             });
+
+
+        } catch (error) {
+
+            next(error);
+
         }
 
-        const row = result.rows[0];
-
-        const validPassword =
-            await bcrypt.compare(
-                password,
-                row.password_hash
-            );
-
-        if (!validPassword) {
-            return res.status(401).json({
-                error: "Invalid email or password"
-            });
-        }
-
-        const user = {
-            id: row.id,
-            name: row.full_name,
-            email: row.email,
-            role: row.role,
-            created_at: row.created_at
-        };
-
-        const token = makeToken(user);
-
-        res.json({
-            user,
-            token
-        });
-
-    } catch (error) {
-        next(error);
     }
-});
+);
 
 
 /* =====================================================
@@ -264,53 +430,83 @@ router.post(
                 email
             } = req.body;
 
+
             if (typeof email !== "string") {
+
                 return res.status(400).json({
-                    error: "Email is required"
+
+                    error:
+                        "Email is required"
+
                 });
+
             }
+
 
             const normalizedEmail =
-                email.trim().toLowerCase();
+                email
+                    .trim()
+                    .toLowerCase();
+
 
             if (!normalizedEmail) {
+
                 return res.status(400).json({
-                    error: "Email is required"
+
+                    error:
+                        "Email is required"
+
                 });
+
             }
 
-            const db = req.app.locals.db;
 
-            const result = await db.query(
-                `
-                SELECT
-                    id,
-                    email
-                FROM users
-                WHERE email = $1
-                `,
-                [normalizedEmail]
-            );
+            const db =
+                req.app.locals.db;
 
-            /*
-              Do not reveal whether
-              an email exists.
-            */
+
+            const result =
+                await db.query(
+                    `
+                    SELECT
+                        id,
+                        email
+                    FROM users
+                    WHERE email = $1
+                    `,
+                    [
+                        normalizedEmail
+                    ]
+                );
+
 
             const responseMessage =
                 "If an account with that email exists, a password-reset link has been sent.";
 
+
+            /*
+               Do not reveal whether
+               an account exists.
+            */
+
             if (result.rowCount === 0) {
+
                 return res.json({
-                    message: responseMessage
+
+                    message:
+                        responseMessage
+
                 });
+
             }
 
-            const user = result.rows[0];
+
+            const user =
+                result.rows[0];
 
 
             /* -----------------------------------------
-               REMOVE OLD RESET TOKENS
+               DELETE OLD RESET TOKENS
             ----------------------------------------- */
 
             await db.query(
@@ -318,18 +514,21 @@ router.post(
                 DELETE FROM password_reset_tokens
                 WHERE user_id = $1
                 `,
-                [user.id]
+                [
+                    user.id
+                ]
             );
 
 
             /* -----------------------------------------
-               GENERATE SECURE TOKEN
+               CREATE RANDOM TOKEN
             ----------------------------------------- */
 
             const rawToken =
                 crypto
                     .randomBytes(32)
                     .toString("hex");
+
 
             const tokenHash =
                 crypto
@@ -366,31 +565,37 @@ router.post(
 
 
             /* -----------------------------------------
-               CREATE RESET LINK
+               CLIENT URL
             ----------------------------------------- */
 
             const clientUrl =
                 process.env.CLIENT_URL;
 
+
             if (!clientUrl) {
+
                 throw new Error(
                     "CLIENT_URL is not configured"
                 );
+
             }
+
 
             const resetLink =
                 `${clientUrl}/reset-password.html?token=${encodeURIComponent(rawToken)}`;
 
 
             /* -----------------------------------------
-               SEND EMAIL
+               SEND RESET EMAIL
             ----------------------------------------- */
 
             await transporter.sendMail({
 
-                from: process.env.SMTP_FROM,
+                from:
+                    process.env.SMTP_FROM,
 
-                to: user.email,
+                to:
+                    user.email,
 
                 subject:
                     "Reset your Santiano Books password",
@@ -408,6 +613,7 @@ If you did not request this, you can ignore this email.
                 `,
 
                 html: `
+
                     <div
                         style="
                             font-family:Arial,sans-serif;
@@ -422,12 +628,15 @@ If you did not request this, you can ignore this email.
                             Reset your Santiano Books password
                         </h2>
 
+
                         <p>
                             You requested a password reset
                             for your Santiano Books account.
                         </p>
 
+
                         <p>
+
                             <a
                                 href="${resetLink}"
                                 style="
@@ -442,19 +651,30 @@ If you did not request this, you can ignore this email.
                             >
                                 RESET PASSWORD
                             </a>
+
                         </p>
 
+
                         <p>
+
                             This link expires in
-                            <strong>30 minutes</strong>.
+                            <strong>
+                                30 minutes
+                            </strong>.
+
                         </p>
 
+
                         <p>
+
                             If you did not request this,
                             you can safely ignore this email.
+
                         </p>
 
+
                         <hr>
+
 
                         <p
                             style="
@@ -462,21 +682,32 @@ If you did not request this, you can ignore this email.
                                 color:#777;
                             "
                         >
+
                             Santiano Books
+
                         </p>
 
                     </div>
+
                 `
+
             });
 
 
             res.json({
-                message: responseMessage
+
+                message:
+                    responseMessage
+
             });
 
+
         } catch (error) {
+
             next(error);
+
         }
+
     }
 );
 
@@ -497,32 +728,42 @@ router.post(
             } = req.body;
 
 
-            /* -----------------------------------------
-               VALIDATE REQUEST
-            ----------------------------------------- */
-
             if (
                 typeof token !== "string" ||
                 typeof password !== "string"
             ) {
+
                 return res.status(400).json({
+
                     error:
                         "Token and password are required"
+
                 });
+
             }
+
 
             if (!token.trim()) {
+
                 return res.status(400).json({
+
                     error:
                         "Invalid password-reset token"
+
                 });
+
             }
 
+
             if (password.length < 8) {
+
                 return res.status(400).json({
+
                     error:
                         "Password must be at least 8 characters"
+
                 });
+
             }
 
 
@@ -537,31 +778,41 @@ router.post(
                     .digest("hex");
 
 
-            const db = req.app.locals.db;
+            const db =
+                req.app.locals.db;
 
 
             /* -----------------------------------------
                FIND VALID TOKEN
             ----------------------------------------- */
 
-            const result = await db.query(
-                `
-                SELECT
-                    id,
-                    user_id
-                FROM password_reset_tokens
-                WHERE token_hash = $1
-                  AND expires_at > NOW()
-                `,
-                [tokenHash]
-            );
+            const result =
+                await db.query(
+                    `
+                    SELECT
+                        id,
+                        user_id
+                    FROM password_reset_tokens
+                    WHERE token_hash = $1
+                      AND expires_at > NOW()
+                    `,
+                    [
+                        tokenHash
+                    ]
+                );
+
 
             if (result.rowCount === 0) {
+
                 return res.status(400).json({
+
                     error:
                         "This reset link is invalid or has expired"
+
                 });
+
             }
+
 
             const resetToken =
                 result.rows[0];
@@ -584,6 +835,7 @@ router.post(
 
             await db.query("BEGIN");
 
+
             try {
 
                 await db.query(
@@ -600,7 +852,7 @@ router.post(
 
 
                 /* -------------------------------------
-                   DELETE USED TOKEN
+                   DELETE USED RESET TOKEN
                 ------------------------------------- */
 
                 await db.query(
@@ -608,28 +860,38 @@ router.post(
                     DELETE FROM password_reset_tokens
                     WHERE id = $1
                     `,
-                    [resetToken.id]
+                    [
+                        resetToken.id
+                    ]
                 );
 
 
                 await db.query("COMMIT");
+
 
             } catch (error) {
 
                 await db.query("ROLLBACK");
 
                 throw error;
+
             }
 
 
             res.json({
+
                 message:
                     "Your password has been reset successfully"
+
             });
 
+
         } catch (error) {
+
             next(error);
+
         }
+
     }
 );
 

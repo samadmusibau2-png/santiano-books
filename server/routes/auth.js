@@ -34,57 +34,105 @@ function makeToken(user) {
 }
 
 
-/* =====================================================
+/* =========================
    EMAIL TRANSPORTER
-===================================================== */
+========================= */
 
-const transporter =
-    nodemailer.createTransport({
+let transporter = null;
 
-        host: "smtp.gmail.com",
-
-        port: 587,
-
-        secure: false,
-
-        requireTLS: true,
-
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASSWORD
-        },
-
-        connectionTimeout: 20000,
-
-        greetingTimeout: 20000,
-
-        socketTimeout: 30000
-
-    });
+let smtpReady = null;
 
 
-/* =====================================================
-   SMTP CONNECTION TEST
-===================================================== */
+async function createSmtpTransport() {
 
-transporter.verify()
+    console.log(
+        "Santiano Books: resolving smtp.gmail.com over IPv4..."
+    );
 
-    .then(() => {
 
-        console.log(
-            "Santiano Books SMTP connection successful."
+    const addresses =
+        await dns.resolve4("smtp.gmail.com");
+
+
+    if (!addresses || addresses.length === 0) {
+
+        throw new Error(
+            "Could not resolve smtp.gmail.com to an IPv4 address."
         );
 
-    })
+    }
 
-    .catch(error => {
 
-        console.error(
-            "Santiano Books SMTP connection failed:",
-            error.message
-        );
+    const smtpIp = addresses[0];
 
-    });
+
+    console.log(
+        `Santiano Books: Gmail IPv4 resolved to ${smtpIp}`
+    );
+
+
+    transporter =
+        nodemailer.createTransport({
+
+            host: smtpIp,
+
+            port: 587,
+
+            secure: false,
+
+            requireTLS: true,
+
+            auth: {
+
+                user: process.env.SMTP_USER,
+
+                pass: process.env.SMTP_PASSWORD
+
+            },
+
+            tls: {
+
+                servername: "smtp.gmail.com"
+
+            },
+
+            connectionTimeout: 30000,
+
+            greetingTimeout: 30000,
+
+            socketTimeout: 60000
+
+        });
+
+
+    await transporter.verify();
+
+
+    console.log(
+        "Santiano Books SMTP connection successful."
+    );
+
+}
+
+
+/* =========================
+   START SMTP
+========================= */
+
+smtpReady =
+    createSmtpTransport()
+        .catch(error => {
+
+            console.error(
+                "Santiano Books SMTP connection failed:",
+                error.message
+            );
+
+            throw error;
+
+        });
+
+
 
 
 /* =====================================================

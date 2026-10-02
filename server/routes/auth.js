@@ -25,19 +25,25 @@ function makeToken(user) {
 }
 
 
-/* =====================================================
+/* =========================
    EMAIL TRANSPORTER
-===================================================== */
+========================= */
 
 const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: 465,
-    secure: true,
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    requireTLS: true,
     family: 4,
+
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASSWORD
-    }
+    },
+
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 30000
 });
 
 

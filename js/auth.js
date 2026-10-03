@@ -85,6 +85,7 @@ function getAuthHeaders(
     const token =
         getAuthToken();
 
+
     if (!token) {
 
         return {
@@ -92,6 +93,7 @@ function getAuthHeaders(
         };
 
     }
+
 
     return {
 
@@ -119,6 +121,7 @@ function saveAuth(data) {
         );
 
     }
+
 
     if (data.user) {
 
@@ -166,6 +169,7 @@ async function loginUser(
 
 
     let data = {};
+
 
     try {
 
@@ -241,6 +245,7 @@ async function registerUser(
 
     let data = {};
 
+
     try {
 
         data =
@@ -267,126 +272,6 @@ async function registerUser(
     if (data.token) {
 
         saveAuth(data);
-
-    }
-
-
-    return data;
-
-}
-
-
-/* =====================================================
-   REQUEST PASSWORD RESET
-===================================================== */
-
-async function requestPasswordReset(
-    email
-) {
-
-    const response =
-        await fetch(
-            authApiUrl(
-                "auth/forgot-password"
-            ),
-            {
-                method: "POST",
-
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-
-                body:
-                    JSON.stringify({
-                        email
-                    })
-            }
-        );
-
-
-    let data = {};
-
-    try {
-
-        data =
-            await response.json();
-
-    } catch {
-
-        data = {};
-
-    }
-
-
-    if (!response.ok) {
-
-        throw new Error(
-            data.error ||
-            data.message ||
-            "Unable to request a password reset."
-        );
-
-    }
-
-
-    return data;
-
-}
-
-
-/* =====================================================
-   RESET PASSWORD
-===================================================== */
-
-async function resetPassword(
-    token,
-    password
-) {
-
-    const response =
-        await fetch(
-            authApiUrl(
-                "auth/reset-password"
-            ),
-            {
-                method: "POST",
-
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-
-                body:
-                    JSON.stringify({
-                        token,
-                        password
-                    })
-            }
-        );
-
-
-    let data = {};
-
-    try {
-
-        data =
-            await response.json();
-
-    } catch {
-
-        data = {};
-
-    }
-
-
-    if (!response.ok) {
-
-        throw new Error(
-            data.error ||
-            data.message ||
-            "Unable to reset your password."
-        );
 
     }
 
@@ -430,11 +315,7 @@ function requireLogin() {
 
         "login.html",
 
-        "register.html",
-
-        "forgot-password.html",
-
-        "reset-password.html"
+        "register.html"
 
     ];
 
@@ -744,7 +625,9 @@ function setupLoginForm() {
 
                 setTimeout(
                     () => {
+
                         handleLoginReturn();
+
                     },
                     400
                 );
@@ -919,8 +802,10 @@ function setupRegisterForm() {
 
                     setTimeout(
                         () => {
+
                             location.href =
                                 "home.html";
+
                         },
                         500
                     );
@@ -937,8 +822,10 @@ function setupRegisterForm() {
 
                 setTimeout(
                     () => {
+
                         location.href =
                             "login.html";
+
                     },
                     700
                 );
@@ -972,282 +859,6 @@ function setupRegisterForm() {
 
 
 /* =====================================================
-   FORGOT PASSWORD FORM
-===================================================== */
-
-function setupForgotPasswordForm() {
-
-    const form =
-        document.getElementById(
-            "forgotPasswordForm"
-        );
-
-
-    if (!form) return;
-
-
-    const emailInput =
-        document.getElementById(
-            "forgotEmail"
-        );
-
-
-    const button =
-        document.getElementById(
-            "forgotPasswordButton"
-        );
-
-
-    const message =
-        document.getElementById(
-            "forgotPasswordMessage"
-        );
-
-
-    form.addEventListener(
-        "submit",
-        async event => {
-
-            event.preventDefault();
-
-
-            const email =
-                emailInput.value.trim();
-
-
-            if (!email) {
-
-                message.textContent =
-                    "Please enter your email address.";
-
-                return;
-
-            }
-
-
-            button.disabled =
-                true;
-
-            button.textContent =
-                "SENDING...";
-
-            message.textContent =
-                "";
-
-
-            try {
-
-                await requestPasswordReset(
-                    email
-                );
-
-
-                message.textContent =
-                    "If an account exists for this email, you will receive a password-reset link.";
-
-
-                form.reset();
-
-
-            } catch (error) {
-
-                console.error(
-                    "Santiano password reset error:",
-                    error
-                );
-
-
-                message.textContent =
-                    error.message ||
-                    "Unable to request a password reset.";
-
-            } finally {
-
-                button.disabled =
-                    false;
-
-                button.textContent =
-                    "SEND RESET LINK";
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =====================================================
-   RESET PASSWORD FORM
-===================================================== */
-
-function setupResetPasswordForm() {
-
-    const form =
-        document.getElementById(
-            "resetPasswordForm"
-        );
-
-
-    if (!form) return;
-
-
-    const passwordInput =
-        document.getElementById(
-            "newPassword"
-        );
-
-
-    const confirmInput =
-        document.getElementById(
-            "confirmPassword"
-        );
-
-
-    const button =
-        document.getElementById(
-            "resetPasswordButton"
-        );
-
-
-    const message =
-        document.getElementById(
-            "resetPasswordMessage"
-        );
-
-
-    /* -----------------------------------------
-       GET TOKEN FROM URL
-    ----------------------------------------- */
-
-    const params =
-        new URLSearchParams(
-            window.location.search
-        );
-
-
-    const token =
-        params.get("token");
-
-
-    if (!token) {
-
-        message.textContent =
-            "This password-reset link is invalid.";
-
-        button.disabled =
-            true;
-
-        return;
-
-    }
-
-
-    /* -----------------------------------------
-       SUBMIT RESET
-    ----------------------------------------- */
-
-    form.addEventListener(
-        "submit",
-        async event => {
-
-            event.preventDefault();
-
-
-            const password =
-                passwordInput.value;
-
-            const confirmPassword =
-                confirmInput.value;
-
-
-            if (password.length < 8) {
-
-                message.textContent =
-                    "Password must be at least 8 characters.";
-
-                return;
-
-            }
-
-
-            if (
-                password !==
-                confirmPassword
-            ) {
-
-                message.textContent =
-                    "Passwords do not match.";
-
-                return;
-
-            }
-
-
-            button.disabled =
-                true;
-
-            button.textContent =
-                "RESETTING...";
-
-            message.textContent =
-                "Updating your password...";
-
-
-            try {
-
-                await resetPassword(
-                    token,
-                    password
-                );
-
-
-                message.textContent =
-                    "Your password has been reset successfully. Redirecting to login...";
-
-
-                form.reset();
-
-
-                setTimeout(
-                    () => {
-
-                        window.location.href =
-                            "login.html";
-
-                    },
-                    2000
-                );
-
-
-            } catch (error) {
-
-                console.error(
-                    "Santiano reset password error:",
-                    error
-                );
-
-
-                message.textContent =
-                    error.message ||
-                    "Unable to reset your password.";
-
-
-                button.disabled =
-                    false;
-
-                button.textContent =
-                    "RESET PASSWORD";
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =====================================================
    START AUTH SYSTEM
 ===================================================== */
 
@@ -1260,10 +871,6 @@ document.addEventListener(
         setupLoginForm();
 
         setupRegisterForm();
-
-        setupForgotPasswordForm();
-
-        setupResetPasswordForm();
 
         updateAuthNavigation();
 

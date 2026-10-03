@@ -42,14 +42,18 @@ const expiresAt =
 
 
 /*
-   Fallback for older links that may still
-   contain ?expires=300
+   Fallback for older links.
+
+   1800 seconds = 30 minutes.
+
+   New links should always use
+   expires_at from the backend.
 */
 
 const fallbackExpiresIn =
   Number(
     params.get("expires")
-  ) || 300;
+  ) || 1800;
 
 
 /* =====================================================
@@ -156,7 +160,10 @@ let timerInterval =
    Use expires_at returned by Render.
 
    Older links:
-   Fall back to expires=300.
+   Fall back to expires parameter.
+
+   If neither exists:
+   Use 30 minutes.
 */
 
 let actualExpiresAt;
@@ -385,6 +392,11 @@ if (
 
   /*
      Check immediately.
+
+     For a fresh 30-minute backend link,
+     this should display approximately:
+
+     30:00
   */
 
   updateTimer();

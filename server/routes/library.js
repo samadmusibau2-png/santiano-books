@@ -203,7 +203,7 @@ router.get(
 
       /* ==============================================
          TEMPORARY SIGNED URL
-         
+
          SUPABASE BUCKET:
          ebooks
 
@@ -211,7 +211,7 @@ router.get(
          PRIVATE
 
          URL LIFETIME:
-         300 SECONDS = 5 MINUTES
+         1800 SECONDS = 30 MINUTES
 
          IMPORTANT:
          The PDF itself is NOT downloaded
@@ -219,7 +219,7 @@ router.get(
       ============================================== */
 
       const expiresIn =
-        300;
+        1800;
 
 
       const {
@@ -259,10 +259,10 @@ router.get(
 
       /* ==============================================
          CALCULATE ABSOLUTE EXPIRATION TIME
-         
+
          This allows the frontend countdown to
          represent the actual expiration time instead
-         of simply starting a fresh 5-minute timer.
+         of simply starting a fresh 30-minute timer.
       ============================================== */
 
       const expiresAt =
@@ -272,7 +272,7 @@ router.get(
 
       /* ==============================================
          RECORD DOWNLOAD
-         
+
          We only record the first download time.
       ============================================== */
 
@@ -317,7 +317,7 @@ router.get(
 
       /* ==============================================
          RETURN TEMPORARY DOWNLOAD INFORMATION
-         
+
          Render returns ONLY JSON.
 
          Render does NOT stream the PDF.
